@@ -6,9 +6,19 @@ const PRODUCTS = {
 		numberOfGroups: 20,
 		numberOfPorts: 5
 	},
+	'AW-RP60': {
+		numberOfCameras: 200,
+		numberOfGroups: 40,
+		numberOfPorts: 5
+	},
 	'AW-RP120': {
 		numberOfCameras: 100,
 		numberOfGroups: 10,
+		numberOfPorts: 10
+	},
+	'AW-RP150': {
+		numberOfCameras: 200,
+		numberOfGroups: 20,
 		numberOfPorts: 10
 	}
 };
@@ -47,6 +57,7 @@ instance.prototype.init = function () {
 	self.actions();
 	self.init_presets();
 	self.init_variables();
+	if (self.config.host != '') { self.status(self.STATUS_OK); }
 }
 
 instance.prototype.destroy = function () {
@@ -77,6 +88,7 @@ instance.prototype.updateConfig = function (config) {
 	const self = this;
 	self.config = config;
 	self.status(self.STATUS_UNKNOWN);
+	if (self.config.host != '') { self.status(self.STATUS_OK); }
 }
 
 instance.prototype.init_presets = function () {

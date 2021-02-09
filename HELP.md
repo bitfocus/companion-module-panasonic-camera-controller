@@ -2,7 +2,7 @@ Panasonic Remote Camera Controllers
 
 *This Module supports the following Panasonic PTZ controllers*
 
-AW-RP50, AW-RP120
+AW-RP50, AW-RP60, AW-RP120, AW-RP150
 
 
 ## Actions

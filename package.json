@@ -1,6 +1,7 @@
 {
 	"name": "panasonic-camera-controller",
-	"version": "1.0.0",
+	"version": "1.0.1",
+	"api_version": "2.10",
 	"keywords": [
 		"ptz",
 		"controller"
@@ -8,14 +9,19 @@
 	"manufacturer": "Panasonic",
 	"product": [
 		"AW-RP50",
-		"AW-RP120"
+		"AW-RP60",
+		"AW-RP120",
+		"AW-RP150"
 	],
 	"shortname": "PTZ controller",
-	"description": "Companion module for Panasonic AW-RP50 and AW-RP120",
+	"description": "Companion module for Panasonic AW-RP50, AW-RP60, AW-RP120 and AW-RP150",
 	"main": "index.js",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"author": "Scott Mayberry <s3tm6y@gmail.com>",
+	"contributors": [
+		"Andreas H. Thomsen <mc-hauge@hotmail.com>"
+	],
 	"license": "MIT"
 }
