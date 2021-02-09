@@ -7,3 +7,5 @@ See HELP.md and LICENSE
 
 **V1.0.1**
 * Added support for AW-RP60 and AW-RP150
+* Added Load Presets 1-100 (Suported by: AW-RP60, AW-RP120, AW-RP150)
+* Added Preset Tracing Start/Stop/Standby (Suported by: AW-RP120, AW-RP150)
