@@ -511,8 +511,13 @@ instance.prototype.action = function ({ action, options } = {}) {
 	}
 
 	actionHandlers[action](options)
-		.catch((error) => self.log('error', `${action}: ${error.toString()}`));
-};
+		.catch((error) => {
+			if (error == 'Error: socket hang up') { return } // This is the expected behavior, since it's the controller closing the connection. Therefore we ignore it here
+			self.log('error', `${action}: ${error.toString()}`);
+			console.log(`${action}: ${error.toString()}`);
+			debug(`${action}: ${error.toString()}`);
+		});
+	};
 
 instance_skel.extendedBy(instance);
 

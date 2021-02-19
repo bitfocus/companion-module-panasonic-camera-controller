@@ -9,3 +9,6 @@ See HELP.md and LICENSE
 * Added support for AW-RP60 and AW-RP150
 * Added Load Presets 1-100 (Suported by: AW-RP60, AW-RP120, AW-RP150)
 * Added Preset Tracing Start/Stop/Standby (Suported by: AW-RP120, AW-RP150)
+
+**V1.0.2**
+* Fixes Error thrown when an action is pressed
