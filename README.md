@@ -12,3 +12,9 @@ See HELP.md and LICENSE
 
 **V1.0.2**
 * Fixes Error thrown when an action is pressed
+
+**V1.0.3**
+* Added Feedbacks
+* Added polling support to get information from the controllers
+* Updated Variables
+* Updated Presets

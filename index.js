@@ -1,4 +1,7 @@
 const instance_skel = require('../../instance_skel');
+const got = require('got');
+var debug;
+var log;
 
 var CHOICES_PRESET = [];
 for (var i = 0; i < 100; ++i) {
@@ -79,17 +82,42 @@ function instance(system, id, config) {
 
 instance.prototype.init = function () {
 	const self = this;
+
+	debug = self.debug;
+	log = self.log;
+
+	self.data = {
+		camera: 'NaN',
+		group: 'NaN',
+		port: 'NaN',
+	};
+
+	self.lastGet = true;
 	self.config.model = this.config.model || 'AW-RP50';
+	self.config.apiEnabled = this.config.apiEnabled || true;
 	self.product = initProduct(self.config.model);
 	self.status(self.STATUS_UNKNOWN);
 	self.actions();
+	if (self.config.apiEnabled == true) {self.initAPI.bind(this)();}
 	self.init_presets();
+	self.init_feedbacks();
+	self.checkFeedbacks();
 	self.init_variables();
+	self.checkVariables();
 	if (self.config.host != '') { self.status(self.STATUS_OK); }
 }
 
 instance.prototype.destroy = function () {
-	const self = this;
+	var self = this;
+	if (self.socket !== undefined) {
+		self.socket.destroy();
+	}
+
+	if (self.pollAPI) {
+		clearInterval(self.pollAPI);
+	}
+
+	self.debug('destroy', self.id);
 }
 
 instance.prototype.config_fields = function () {
@@ -106,7 +134,7 @@ instance.prototype.config_fields = function () {
 			type: 'dropdown',
 			id: 'model',
 			label: 'Select Your Controler Model',
-			width: 6,
+			width: 3,
 			default: 'AW-RP50',
 			choices: MODELS,
 			minChoicesForSearch: 5
@@ -118,17 +146,57 @@ instance.prototype.config_fields = function () {
 			width: 6,
 			regex: self.REGEX_IP
 		},
+		{
+			type: 'textinput',
+			id: 'httpPort',
+			label: 'HTTP Port (Default: 80)',
+			width: 3,
+			default: 80,
+			regex: this.REGEX_PORT
+		},
+		{
+			type: 'text',
+			id: 'apiPollInfo',
+			width: 12,
+			label: 'API Poll Interval warning',
+			value:
+				'Adjusting the API Polling Interval can impact performance. <br />' +
+				'A lower invterval allows for more responsive feedback, but may impact CPU usage. <br />' +
+				'Less than 500 ms is not recommended, as the controllers are relatively slow to respond' 
+		},
+		{
+			type: 'textinput',
+			id: 'apiPollInterval',
+			label: 'API Polling interval (ms) (default: 1000, min: 250)',
+			width: 4,
+			default: 1000,
+			min: 250,
+			max: 10000,
+			regex: this.REGEX_NUMBER
+		},
+		{
+			type: 'checkbox',
+			id: 'apiEnabled',
+			width: 3,
+			label: 'Enable Feebacks/Polling',
+			default: true
+		},
 	];
 }
 
 instance.prototype.updateConfig = function (config) {
 	var self = this;
 	self.status(self.STATUS_UNKNOWN);
+	self.lastGet = true;
 	self.config = config;
 	self.product = initProduct(self.config.model);
 	self.actions();
+	if (self.config.apiEnabled == true) {self.initAPI.bind(this)();}
 	self.init_presets();
+	self.init_feedbacks();
+	self.checkFeedbacks();
 	self.init_variables();
+	self.checkVariables();
 	if (self.config.host != '') { self.status(self.STATUS_OK); }
 }
 
@@ -156,7 +224,15 @@ instance.prototype.init_presets = function () {
 						camera: p.cameraChoices[x].id
 					}
 				}
-			]
+			],
+			feedbacks: [
+				{
+					type: 'cameraSelected',
+					options: {
+						camera: p.cameraChoices[x].id
+					}
+				}
+			],
 		});
 	}
 
@@ -178,7 +254,15 @@ instance.prototype.init_presets = function () {
 						group: p.groupChoices[x].id
 					}
 				}
-			]
+			],
+			feedbacks: [
+				{
+					type: 'groupSelected',
+					options: {
+						camera: p.groupChoices[x].id
+					}
+				}
+			],
 		});
 	}
 
@@ -200,7 +284,15 @@ instance.prototype.init_presets = function () {
 						port: p.portChoices[x].id
 					}
 				}
-			]
+			],
+			feedbacks: [
+				{
+					type: 'portSelected',
+					options: {
+						camera: p.portChoices[x].id
+					}
+				}
+			],
 		});
 	}
 
@@ -353,6 +445,107 @@ instance.prototype.init_variables = function () {
 	self.setVariableDefinitions(variables);
 }
 
+instance.prototype.checkVariables = function () {
+	var self = this;
+
+	self.setVariable('camera', self.data.camera);
+	self.setVariable('group', self.data.group)
+	self.setVariable('port', self.data.port)
+}
+
+instance.prototype.setFeedbacks = function () {
+	var self = this;
+	var p = self.product;
+	var feedbacks = {};
+
+	const foregroundColor = {
+		type: 'colorpicker',
+		label: 'Foreground color',
+		id: 'fg',
+		default: self.rgb(255, 255, 255) // White
+	};
+
+	const backgroundColor = {
+		type: 'colorpicker',
+		label: 'Background color ON',
+		id: 'bg',
+		default: self.rgb(255, 0, 0) // Red
+	};
+
+	feedbacks.cameraSelected = {
+		label: 'Camera Selected',
+		description: 'Indicate if Camera is selected',
+		options: [
+			{
+				type: 'dropdown',
+				label: CAMERA_LABEL,
+				id: 'camera',
+				default: '1',
+				choices: p.cameraChoices
+			},
+			foregroundColor, 
+			backgroundColor
+		],
+		callback: function(feedback, bank) {
+			var opt = feedback.options;
+			if (opt.camera == self.data.camera) {
+				return { color: opt.fg, bgcolor: opt.bg }
+			}
+		}
+	};
+
+	feedbacks.groupSelected = {
+		label: 'Group Selected',
+		description: 'Indicate if Group is selected',
+		options: [
+			{
+				type: 'dropdown',
+				label: GROUP_LABEL,
+				id: 'group',
+				default: '1',
+				choices: p.groupChoices
+			},
+			foregroundColor, 
+			backgroundColor
+		],
+		callback: function(feedback, bank) {
+			var opt = feedback.options;
+			if (opt.group == self.data.group) {
+				return { color: opt.fg, bgcolor: opt.bg }
+			}
+		}
+	};
+
+	feedbacks.portSelected = {
+		label: 'Port Selected',
+		description: 'Indicate if Port is selected',
+		options: [
+			{
+				type: 'dropdown',
+				label: PORT_LABEL,
+				id: 'port',
+				default: '1',
+				choices: p.portChoices
+			},
+			foregroundColor, 
+			backgroundColor
+		],
+		callback: function(feedback, bank) {
+			var opt = feedback.options;
+			if (opt.port == self.data.port) {
+				return { color: opt.fg, bgcolor: opt.bg }
+			}
+		}
+	};
+
+	return(feedbacks);
+}
+
+instance.prototype.init_feedbacks = function (system) {
+	const self = this;
+	self.setFeedbackDefinitions(self.setFeedbacks());
+}
+
 instance.prototype.actions = function () {
 	const self = this;
 	var p = self.product;
@@ -365,6 +558,7 @@ instance.prototype.actions = function () {
 				type: 'dropdown',
 				label: CAMERA_LABEL,
 				id: 'camera',
+				default: '1',
 				choices: p.cameraChoices
 			}
 		]
@@ -377,6 +571,7 @@ instance.prototype.actions = function () {
 				type: 'dropdown',
 				label: 'Group',
 				id: 'group',
+				default: '1',
 				choices: p.groupChoices
 			}
 		]
@@ -389,12 +584,14 @@ instance.prototype.actions = function () {
 				type: 'dropdown',
 				label: GROUP_LABEL,
 				id: 'group',
+				default: '1',
 				choices: p.groupChoices
 			},
 			{
 				type: 'dropdown',
 				label: PORT_LABEL,
 				id: 'port',
+				default: '1',
 				choices: p.portChoices
 			}
 		]
@@ -407,23 +604,24 @@ instance.prototype.actions = function () {
 				type: 'dropdown',
 				label: PORT_LABEL,
 				id: 'port',
+				default: '1',
 				choices: p.portChoices
 			}
 		]
 	};
 
 	if (p.presetMemory == true) {actions.presetMemory = {
-			label: 'Select Preset Memory',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Select Preset',
-					id: 'preset',
-					choices: CHOICES_PRESET
-				}
-			]
-		};
-	}
+		label: 'Select Preset Memory',
+		options: [
+			{
+				type: 'dropdown',
+				label: 'Select Preset',
+				id: 'preset',
+				default: '1',
+				choices: CHOICES_PRESET
+			}
+		]
+	};}
 
 	if (p.presetTracing == true) {actions.presetTracing = {
 		label: 'Preset Traceing',
@@ -433,6 +631,7 @@ instance.prototype.actions = function () {
 				label: 'Option',
 				id: 'opt',
 				default: 'Standby',
+				default: '02',
 				choices: [
 					{ id: '02', label: 'Standby' },
 					{ id: '01', label: 'Play' },
@@ -446,52 +645,29 @@ instance.prototype.actions = function () {
 				choices: CHOICES_TRACING
 			}
 		]
-	};
-}
+	};}
 
 	self.system.emit('instance_actions', self.id, actions);
 }
-
-instance.prototype.sendCommand = function (command) {
-	const self = this;
-	const url = `http://${self.config.host}/cgi-bin/aw_cam?cmd=${command}&res=1`;
-	const extraHeaders = {};
-	const extraArgs = {
-		requestConfig: { keepAlive: true, timeout: 1000 },
-		responseConfig: { timeout: 1000 }
-	};
-	return new Promise((resolve, reject) => {
-		self.system.emit('rest_get', url, (err, { data, error, response }) => {
-			if (err) {
-				reject(error);
-				return;
-			}
-			resolve(data);
-		}, extraHeaders, extraArgs);
-	});
-};
 
 instance.prototype.action = function ({ action, options } = {}) {
 	const self = this;
 	const actionHandlers = {
 		'selectCamera': (options) => (
 			self.sendCommand(`XCN:01:${options.camera}`)
-				.then(() => self.setVariable('camera', options.camera))
+			.then()
 		),
 		'selectGroup': (options) => (
 			self.sendCommand(`XGP:${options.group}`)
-				.then(() => self.setVariable('group', options.group))
+			.then()
 		),
 		'selectGroupPort': (options) => (
 			self.sendCommand(`XCN:02:${options.group}:${options.port}`)
-				.then(() => {
-					self.setVariable('group', options.group);
-					self.setVariable('port', options.port);
-				})
+			.then()
 		),
 		'selectPort': (options) => (
 			self.sendCommand(`XPT:${options.port}`)
-				.then(() => self.setVariable('port', options.port))
+			.then()
 		),
 		'presetMemory': (options) => (
 			self.sendCommand(`XPM:01:${options.preset}`)
@@ -517,7 +693,116 @@ instance.prototype.action = function ({ action, options } = {}) {
 			console.log(`${action}: ${error.toString()}`);
 			debug(`${action}: ${error.toString()}`);
 		});
+};
+
+instance.prototype.sendCommand = function (command) {
+	const self = this;
+	const url = `http://${self.config.host}/cgi-bin/aw_cam?cmd=${command}&res=1`;
+	const extraHeaders = {};
+	const extraArgs = {
+		requestConfig: { keepAlive: true, timeout: 1000 },
+		responseConfig: { timeout: 1000 }
 	};
+	return new Promise((resolve, reject) => {
+		self.system.emit('rest_get', url, (err, { data, error, response }) => {
+			if (err) {
+				reject(error);
+				return;
+			}
+			resolve(data);
+		}, extraHeaders, extraArgs);
+	});
+};
+
+instance.prototype.initAPI = function () {
+	const self = this;
+	const parseData = body => {
+		var str_raw = String(body);
+		var str = {};
+
+		str_raw = str_raw.split('\r\n') // Split Data in order to remove data before and after command
+		
+		str = str_raw[0].trim(); // remove new line, carage return and so on.
+		str = str.split(':'); // Split Commands and data
+		console.log('HTTP Recived from Controller: ' + str_raw[0]);
+		debug('HTTP Recived from Controller: ' + str_raw[0]); // Debug Recived data				
+
+		// Store Data
+		if (str[0] == "XQC") {
+			switch (str[1]) { // str[0] is always XQC
+				case '01': self.data.camera = str[2]; break;
+				case '02':
+					self.data.group = str[2]; 
+					self.data.port = str[3]; 
+					break;			
+				default:
+					break;
+			}	
+		}
+
+		self.checkVariables();
+		self.checkFeedbacks();
+};
+
+	const getStatus = () => {
+		got.retry = 0; // Disable reties
+		
+		// For sepecifiing a headder
+		const options = {
+			// headers: {
+			// 	Authorization: `Basic ${Buffer.from(this.config.username + ':' + this.config.password).toString('base64')}`
+			// }
+		};
+
+		// Get Selected Camera
+		if (self.lastGet == true) {
+			got.get(`http://${this.config.host}:${this.config.httpPort || 80}/cgi-bin/aw_cam?cmd=XQC:01&res=1`, options)
+			.then(res => {
+				if (res.statusCode === 200) {
+					this.status(this.STATE_OK);
+					this.debug('Connected');	
+					// console.log(res.body);
+					parseData(res.body);
+					// return parseData(res.body);
+				}
+			})
+			.catch(err => {
+				this.debug('Network error', err);
+				this.status(this.STATE_ERROR, err);
+				this.debug('Panasonic API err:' + JSON.stringify(err));
+			});
+		}
+
+		// Get Selected Group and Port
+		if (self.lastGet == false) {
+			got.get(`http://${this.config.host}:${this.config.httpPort || 80}/cgi-bin/aw_cam?cmd=XQC:02&res=1`, options)
+			.then(res => {
+				if (res.statusCode === 200) {
+					this.status(this.STATE_OK);
+					this.debug('Connected');
+					// console.log(res.body);		
+					parseData(res.body);
+					// return parseData(res.body);
+				}
+			})
+			.catch(err => {
+				this.debug('Network error', err);
+				this.status(this.STATE_ERROR, err);
+				this.debug('Panasonic API err:' + JSON.stringify(err));
+			});
+		}
+
+		self.lastGet = !self.lastGet; // toggles to get Camera, vs Group and Port
+	};
+
+	if (this.pollAPI) {
+		clearInterval(this.pollAPI);
+	}
+
+	if (this.config.apiPollInterval != 0) {
+		this.pollAPI = setInterval(getStatus, this.config.apiPollInterval < 100 ? 100 : this.config.apiPollInterval);
+	}
+};
 
 instance_skel.extendedBy(instance);
 

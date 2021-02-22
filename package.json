@@ -1,6 +1,6 @@
 {
 	"name": "panasonic-camera-controller",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"api_version": "2.10",
 	"keywords": [
 		"ptz",
@@ -23,5 +23,8 @@
 	"contributors": [
 		"Andreas H. Thomsen <mc-hauge@hotmail.com>"
 	],
-	"license": "MIT"
+	"license": "MIT",
+	"dependencies": {
+		"got": "^6.7.1"
+	}
 }
