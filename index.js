@@ -697,7 +697,7 @@ instance.prototype.action = function ({ action, options } = {}) {
 
 instance.prototype.sendCommand = function (command) {
 	const self = this;
-	const url = `http://${self.config.host}/cgi-bin/aw_cam?cmd=${command}&res=1`;
+	const url = `http://${this.config.host}:${this.config.httpPort || 80}/cgi-bin/aw_cam?cmd=${command}&res=1`;
 	const extraHeaders = {};
 	const extraArgs = {
 		requestConfig: { keepAlive: true, timeout: 1000 },

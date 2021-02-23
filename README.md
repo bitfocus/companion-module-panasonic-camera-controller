@@ -18,3 +18,6 @@ See HELP.md and LICENSE
 * Added polling support to get information from the controllers
 * Updated Variables
 * Updated Presets
+
+**V1.0.4**
+* Hotfix missing port when sending commands to controllers not using port 80
