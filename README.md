@@ -27,3 +27,7 @@ See HELP.md and LICENSE
 **V1.0.4**
 
 - Hotfix missing port when sending commands to controllers not using port 80
+
+**V1.0.5**
+
+- Converted Feedbacks to Boolean Feedbacks for more flexibility

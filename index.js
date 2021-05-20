@@ -77,6 +77,13 @@ const initProduct = (product) => {
 function instance(system, id, config) {
 	const self = this
 	instance_skel.apply(self, arguments)
+
+	self.addUpgradeToBooleanFeedbackScript({
+		cameraSelected: true,
+		groupSelected: true,
+		portSelected: true,
+	})
+
 	return self
 }
 
@@ -213,6 +220,9 @@ instance.prototype.init_presets = function () {
 	var p = self.product
 	var presets = []
 
+	const foregroundColor = self.rgb(255, 255, 255) // White
+	const backgroundColor = self.rgb(255, 0, 0) // Red
+
 	for (var x = 0; x < 8; x++) {
 		presets.push({
 			category: 'Select Camera',
@@ -237,6 +247,10 @@ instance.prototype.init_presets = function () {
 					type: 'cameraSelected',
 					options: {
 						camera: p.cameraChoices[x].id,
+					},
+					style: {
+						color: foregroundColor,
+						bgcolor: backgroundColor,
 					},
 				},
 			],
@@ -268,6 +282,10 @@ instance.prototype.init_presets = function () {
 					options: {
 						camera: p.groupChoices[x].id,
 					},
+					style: {
+						color: foregroundColor,
+						bgcolor: backgroundColor,
+					},
 				},
 			],
 		})
@@ -297,6 +315,10 @@ instance.prototype.init_presets = function () {
 					type: 'portSelected',
 					options: {
 						camera: p.portChoices[x].id,
+					},
+					style: {
+						color: foregroundColor,
+						bgcolor: backgroundColor,
 					},
 				},
 			],
@@ -364,7 +386,7 @@ instance.prototype.init_presets = function () {
 					action: 'presetTracing',
 					options: {
 						opt: '01',
-						preset: '01',
+						preset: CHOICES_TRACING[0].id,
 					},
 				},
 			],
@@ -408,7 +430,7 @@ instance.prototype.init_presets = function () {
 					action: 'presetTracing',
 					options: {
 						opt: '01',
-						preset: '01',
+						preset: CHOICES_TRACING[0].id,
 					},
 				},
 			],
@@ -461,27 +483,21 @@ instance.prototype.checkVariables = function () {
 }
 
 instance.prototype.setFeedbacks = function () {
-	var self = this
+	const self = this
 	var p = self.product
 	var feedbacks = {}
 
-	const foregroundColor = {
-		type: 'colorpicker',
-		label: 'Foreground color',
-		id: 'fg',
-		default: self.rgb(255, 255, 255), // White
-	}
-
-	const backgroundColor = {
-		type: 'colorpicker',
-		label: 'Background color ON',
-		id: 'bg',
-		default: self.rgb(255, 0, 0), // Red
-	}
+	const foregroundColor = self.rgb(255, 255, 255) // White
+	const backgroundColor = self.rgb(255, 0, 0) // Red
 
 	feedbacks.cameraSelected = {
+		type: 'boolean',
 		label: 'Camera Selected',
 		description: 'Indicate if Camera is selected',
+		style: {
+			color: foregroundColor,
+			bgcolor: backgroundColor,
+		},
 		options: [
 			{
 				type: 'dropdown',
@@ -490,20 +506,24 @@ instance.prototype.setFeedbacks = function () {
 				default: '1',
 				choices: p.cameraChoices,
 			},
-			foregroundColor,
-			backgroundColor,
 		],
 		callback: function (feedback, bank) {
 			var opt = feedback.options
 			if (opt.camera == self.data.camera) {
-				return { color: opt.fg, bgcolor: opt.bg }
+				return true
 			}
+			return false
 		},
 	}
 
 	feedbacks.groupSelected = {
+		type: 'boolean',
 		label: 'Group Selected',
 		description: 'Indicate if Group is selected',
+		style: {
+			color: foregroundColor,
+			bgcolor: backgroundColor,
+		},
 		options: [
 			{
 				type: 'dropdown',
@@ -512,20 +532,24 @@ instance.prototype.setFeedbacks = function () {
 				default: '1',
 				choices: p.groupChoices,
 			},
-			foregroundColor,
-			backgroundColor,
 		],
 		callback: function (feedback, bank) {
 			var opt = feedback.options
 			if (opt.group == self.data.group) {
-				return { color: opt.fg, bgcolor: opt.bg }
+				return true
 			}
+			return false
 		},
 	}
 
 	feedbacks.portSelected = {
+		type: 'boolean',
 		label: 'Port Selected',
 		description: 'Indicate if Port is selected',
+		style: {
+			color: foregroundColor,
+			bgcolor: backgroundColor,
+		},
 		options: [
 			{
 				type: 'dropdown',
@@ -534,14 +558,13 @@ instance.prototype.setFeedbacks = function () {
 				default: '1',
 				choices: p.portChoices,
 			},
-			foregroundColor,
-			backgroundColor,
 		],
 		callback: function (feedback, bank) {
 			var opt = feedback.options
 			if (opt.port == self.data.port) {
-				return { color: opt.fg, bgcolor: opt.bg }
+				return true
 			}
+			return false
 		},
 	}
 
