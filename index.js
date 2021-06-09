@@ -78,13 +78,17 @@ function instance(system, id, config) {
 	const self = this
 	instance_skel.apply(self, arguments)
 
-	self.addUpgradeToBooleanFeedbackScript({
-		cameraSelected: true,
-		groupSelected: true,
-		portSelected: true,
-	})
-
 	return self
+}
+
+instance.GetUpgradeScripts = function() {
+	return [
+		instance_skel.CreateConvertToBooleanFeedbackUpgradeScript({
+			cameraSelected: true,
+			groupSelected: true,
+			portSelected: true,
+		}),
+	]
 }
 
 instance.prototype.init = function () {
