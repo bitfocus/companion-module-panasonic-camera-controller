@@ -81,7 +81,7 @@ function instance(system, id, config) {
 	return self
 }
 
-instance.GetUpgradeScripts = function() {
+instance.GetUpgradeScripts = function () {
 	return [
 		instance_skel.CreateConvertToBooleanFeedbackUpgradeScript({
 			cameraSelected: true,
