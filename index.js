@@ -1,7 +1,5 @@
 const instance_skel = require('../../instance_skel')
 const got = require('got')
-var debug
-var log
 
 var CHOICES_PRESET = []
 for (var i = 0; i < 100; ++i) {
@@ -93,9 +91,6 @@ instance.GetUpgradeScripts = function () {
 
 instance.prototype.init = function () {
 	const self = this
-
-	debug = self.debug
-	log = self.log
 
 	self.data = {
 		camera: 'NaN',
@@ -715,8 +710,7 @@ instance.prototype.action = function ({ action, options } = {}) {
 			return
 		} // This is the expected behavior, since it's the controller closing the connection. Therefore we ignore it here
 		self.log('error', `${action}: ${error.toString()}`)
-		console.log(`${action}: ${error.toString()}`)
-		debug(`${action}: ${error.toString()}`)
+		self.debug(`${action}: ${error.toString()}`)
 	})
 }
 
@@ -755,8 +749,7 @@ instance.prototype.initAPI = function () {
 
 		str = str_raw[0].trim() // remove new line, carage return and so on.
 		str = str.split(':') // Split Commands and data
-		console.log('HTTP Recived from Controller: ' + str_raw[0])
-		debug('HTTP Recived from Controller: ' + str_raw[0]) // Debug Recived data
+		self.debug('HTTP Recived from Controller: ' + str_raw[0]) // Debug Recived data
 
 		// Store Data
 		if (str[0] == 'XQC') {
