@@ -112,8 +112,10 @@ instance.prototype.init = function () {
 	self.checkFeedbacks()
 	self.init_variables()
 	self.checkVariables()
-	if (self.config.host != '') {
+	if (self.config.host) {
 		self.status(self.STATUS_OK)
+	} else {
+		self.status(self.STATUS_ERROR, 'Missing config')
 	}
 }
 
@@ -209,8 +211,10 @@ instance.prototype.updateConfig = function (config) {
 	self.checkFeedbacks()
 	self.init_variables()
 	self.checkVariables()
-	if (self.config.host != '') {
+	if (self.config.host) {
 		self.status(self.STATUS_OK)
+	} else {
+		self.status(self.STATUS_ERROR, 'Missing config')
 	}
 }
 
@@ -773,13 +777,12 @@ instance.prototype.initAPI = function () {
 	}
 
 	const getStatus = () => {
-		got.retry = 0 // Disable reties
-
 		// For sepecifiing a headder
 		const options = {
 			// headers: {
 			// 	Authorization: `Basic ${Buffer.from(this.config.username + ':' + this.config.password).toString('base64')}`
 			// }
+			retry: 0, // Disable reties
 		}
 
 		// Get Selected Camera
@@ -827,10 +830,12 @@ instance.prototype.initAPI = function () {
 
 	if (this.pollAPI) {
 		clearInterval(this.pollAPI)
+		this.pollAPI = undefined
 	}
 
-	if (this.config.apiPollInterval != 0) {
-		this.pollAPI = setInterval(getStatus, this.config.apiPollInterval < 100 ? 100 : this.config.apiPollInterval)
+	const pollInterval = this.config.apiPollInterval === undefined ? 1000 : Math.max(100, this.config.apiPollInterval)
+	if (pollInterval && this.config.host) {
+		this.pollAPI = setInterval(getStatus, pollInterval)
 	}
 }
 
