@@ -1,7 +1,7 @@
 {
 	"name": "panasonic-camera-controller",
 	"version": "1.0.8",
-	"api_version": "2.10",
+	"api_version": "1.0.0",
 	"keywords": [
 		"ptz",
 		"controller"
@@ -26,5 +26,13 @@
 	"license": "MIT",
 	"dependencies": {
 		"got": "^6.7.1"
+	},
+	"homepage": "https://github.com/bitfocus/companion-module-panasonic-camera-controller#readme",
+	"bugs": {
+		"url": "https://github.com/bitfocus/companion-module-panasonic-camera-controller/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/bitfocus/companion-module-panasonic-camera-controller.git"
 	}
 }
