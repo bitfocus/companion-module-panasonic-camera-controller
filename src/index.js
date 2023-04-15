@@ -31,7 +31,6 @@ class PTZControlerInstance extends InstanceBase {
 		this.updateStatus('connecting')
 		this.api = new API(config)
 		this.configUpdated(config)
-		this.updateStatus('ok')
 	}
 
 	async destroy() {
@@ -51,7 +50,6 @@ class PTZControlerInstance extends InstanceBase {
 
 		self.config = config
 		this.updateStatus('connecting')
-		this.updateStatus('unknown_error')
 
 		// Update API only if config changes are relevant
 		if (config.host != self.config.host || config.httpPort != self.config.httpPort) {
