@@ -31,3 +31,8 @@ See HELP.md and LICENSE
 **V1.0.5**
 
 - Converted Feedbacks to Boolean Feedbacks for more flexibility
+
+**V2.0.0**
+
+- Module rewritten for Companion v3
+- Added 3 steps Standby/Play/Stop presets button for Tracing
