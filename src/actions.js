@@ -1,4 +1,4 @@
-import { CAMERA_LABEL, GROUP_LABEL, PORT_LABEL, CHOICES_PRESET, CHOICES_TRACING } from "./common.js"
+import { CAMERA_LABEL, GROUP_LABEL, PORT_LABEL } from "./common.js"
 
 export function initActions(self) {
     var actions = {}

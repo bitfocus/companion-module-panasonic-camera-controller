@@ -3,7 +3,6 @@ import { combineRgb } from "@companion-module/base"
 export function initPresets(self) {
     var p = self.product
     var presets = []
-    console.log(p)
 
     const foregroundColor = combineRgb(255, 255, 255) // White
     const backgroundColor = combineRgb(255, 0, 0) // Red
