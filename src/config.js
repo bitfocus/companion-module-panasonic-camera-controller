@@ -53,9 +53,9 @@ export function getConfigDefinitions() {
             type: 'static-text',
             id: 'apiPollInfo',
             width: 12,
-            label: 'API Poll Interval warning',
+            label: 'API poll settings',
             value: 'Adjusting the API Polling Interval can impact performance. <br />' +
-                'A lower invterval allows for more responsive feedback, but may impact CPU usage. <br />' +
+                'A lower interval allows for more responsive feedback, but may impact CPU usage. <br />' +
                 'Less than 500 ms is not recommended, as the controllers are relatively slow to respond',
         },
         {
