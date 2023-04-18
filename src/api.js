@@ -21,10 +21,15 @@ export class API {
             if (response.status === 200) {
                 return response.data
             } else {
-				return new Error('Response error')
+				throw new Error('Response error')
             }
 		} catch (err) {
-            return new Error(err)
+            try {
+                const jsonErr = err.toJSON()
+                throw new Error(jsonErr.message)
+            } catch {
+                throw new Error('Response unknown error')
+            }
 		}
     }
 }
