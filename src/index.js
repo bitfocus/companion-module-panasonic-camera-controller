@@ -3,7 +3,7 @@ import { initActions } from './actions.js'
 import { API } from './api.js'
 import { initFeedbacks } from './feedbacks.js'
 import { initProduct } from './models.js'
-import { setPolling } from './polling.js'
+import { setPolling, checkConnection } from './polling.js'
 import { initPresets } from './presets.js'
 import UpgradeScripts from './upgrades.js'
 import { initVariables, checkVariables } from './vars.js'
@@ -23,14 +23,17 @@ class PTZControlerInstance extends InstanceBase {
 			group: 'NaN',
 			port: 'NaN',
 		}
+		this.polling = {
+			alt: false,
+			pause: true,
+		}
 
 		this.config = config
 		this.config.model = this.config.model || 'AW-RP50'
 		this.config.enablePolling = this.config.enablePolling || true
 
-		this.updateStatus('connecting')
 		this.api = new API(config)
-		this.configUpdated(config)
+		await this.configUpdated(config)
 	}
 
 	async destroy() {
@@ -42,41 +45,40 @@ class PTZControlerInstance extends InstanceBase {
 			clearInterval(this.polling.interval)
 		}
 
+		if (this.retryConnection) {
+			clearInterval(this.retryConnection)
+		}
+
 		this.debug('destroy', this.id)
 	}
 
 	async configUpdated(config) {
-		const self = this
-
-		self.config = config
-		this.updateStatus('connecting')
+		var updatePolling = false
 
 		// Update API only if config changes are relevant
-		if (config.host != self.config.host || config.httpPort != self.config.httpPort) {
-			self.api.updateConfig(config)
+		if (config.host != this.config.host || config.httpPort != this.config.httpPort) {
+			this.api.updateConfig(config)
 		}
-		// Set polling only if config changes are relevant
+		// Indicate to (re)init polling only if config changes are relevant
 		if ((config.enablePolling && !this.polling.interval) ||
-			config.apiPollInterval != self.config.apiPollInterval ||
-			config.enablePolling != self.config.enablePolling) {
-            	setPolling(this)
+			config.apiPollInterval != this.config.apiPollInterval ||
+			config.enablePolling != this.config.enablePolling) {
+				updatePolling = true
         }
 
-		self.config = config
-		self.product = initProduct(self.config.model)
+		this.config = config
+		this.product = initProduct(this.config.model)
 		
+		if (updatePolling) { // (Re)init polling here, after applying config changes
+			setPolling(this)
+		}
 		initActions(this)
 		initFeedbacks(this)
-		self.checkFeedbacks()
+		this.checkFeedbacks()
 		initPresets(this)
 		initVariables(this)
 		checkVariables(this)
-
-		if (self.config.host) {
-			this.updateStatus('ok')
-		} else {
-			this.updateStatus('bad_config', 'Missing host')
-		}
+		checkConnection(this)
 	}
 
 	getConfigFields() {
