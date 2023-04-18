@@ -12,21 +12,19 @@ export class API {
 
     async sendCommand(cmd) {
         const options = {
-            retry: {
-                limit: 0
-            }
+            timeout: 5000
         }
         let url = this.baseURL + cmd + this.urlEnd
 
         try {
-			const response = await axios.get(url)
+			const response = await axios.get(url, options)
             if (response.status === 200) {
                 return response.data
             } else {
 				return new Error('Response error')
             }
 		} catch (err) {
-			return new Error(err)
+            return new Error(err)
 		}
     }
 }
