@@ -10,7 +10,7 @@ export class API {
         this.baseURL = `http://${config.host}:${config.httpPort || 80}/cgi-bin/aw_cam?cmd=`
     }
 
-    async sendCommand(cmd) {
+    sendCommand = async function (cmd) {
         const options = {
             timeout: 5000
         }
