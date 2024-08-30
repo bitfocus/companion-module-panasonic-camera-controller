@@ -9,7 +9,7 @@
 	"license": "MIT",
 	"dependencies": {
 		"@companion-module/base": "~1.2.0",
-		"axios": "^1.6.0"
+		"axios": "^1.7.4"
 	},
 	"repository": {
 		"type": "git",
