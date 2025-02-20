@@ -98,7 +98,7 @@ export function initActions(self) {
             options: [
                 {
                     type: 'dropdown',
-                    label: 'Option',
+                    label: 'Option Mode',
                     id: 'opt',
                     default: 'Standby',
                     default: '02',
@@ -120,7 +120,7 @@ export function initActions(self) {
                 if (event.options.opt == '01') {
                     trace = '000'
                 }
-                await self.api.sendCommand(`XPM:${event.options.opt}:${trace}`).then()
+                await self.api.sendCommand(`XTM:${event.options.opt}:${trace}`).then()
             },
         }
     }
