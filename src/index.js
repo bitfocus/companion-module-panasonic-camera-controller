@@ -60,16 +60,19 @@ class PTZControlerInstance extends InstanceBase {
 			this.api.updateConfig(config)
 		}
 		// Indicate to (re)init polling only if config changes are relevant
-		if ((config.enablePolling && !this.polling.interval) ||
+		if (
+			(config.enablePolling && !this.polling.interval) ||
 			config.apiPollInterval != this.config.apiPollInterval ||
-			config.enablePolling != this.config.enablePolling) {
-				updatePolling = true
-        }
+			config.enablePolling != this.config.enablePolling
+		) {
+			updatePolling = true
+		}
 
 		this.config = config
 		this.product = initProduct(this.config.model)
-		
-		if (updatePolling) { // (Re)init polling here, after applying config changes
+
+		if (updatePolling) {
+			// (Re)init polling here, after applying config changes
 			setPolling(this)
 		}
 		initActions(this)

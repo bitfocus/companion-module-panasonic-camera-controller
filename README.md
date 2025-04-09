@@ -36,3 +36,8 @@ See HELP.md and LICENSE
 
 - Module rewritten for Companion v3
 - Added 3 steps Standby/Play/Stop presets button for Tracing
+
+**V2.1.0**
+
+- Rewrite of the connection handler
+- Upgraded depencies and dev environment

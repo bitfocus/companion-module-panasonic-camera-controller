@@ -3,7 +3,7 @@
 	"name": "panasonic-camera-controller",
 	"shortname": "PTZ controller",
 	"description": "Companion module for Panasonic AW-RP50, AW-RP60, AW-RP120 and AW-RP150",
-	"version": "2.0.0",
+	"version": "2.1.0",
 	"license": "MIT",
 	"repository": "git+https://github.com/bitfocus/companion-module-panasonic-camera-controller.git",
 	"bugs": "https://github.com/bitfocus/companion-module-panasonic-camera-controller/issues",
@@ -19,9 +19,9 @@
 	],
 	"legacyIds": [],
 	"runtime": {
-		"type": "node18",
+		"type": "node22",
 		"api": "nodejs-ipc",
-		"apiVersion": "1.0.0",
+		"apiVersion": "0.0.0",
 		"entrypoint": "../src/index.js"
 	},
 	"manufacturer": "Panasonic",
@@ -32,7 +32,8 @@
 		"AW-RP150"
 	],
 	"keywords": [
-		"ptz",
-		"controller"
+		"PTZ",
+		"Camera",
+		"Controller"
 	]
 }

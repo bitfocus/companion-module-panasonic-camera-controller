@@ -1,21 +1,27 @@
 {
 	"name": "panasonic-camera-controller",
-	"version": "2.0.0",
+	"version": "2.1.0",
 	"main": "src/index.js",
 	"type": "module",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1"
-	},
-	"license": "MIT",
-	"dependencies": {
-		"@companion-module/base": "~1.2.0",
-		"axios": "^1.7.4"
+		"format": "prettier -w .",
+		"package": "companion-module-build",
+		"lint:raw": "eslint",
+		"lint": "yarn lint:raw ."
 	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/bitfocus/companion-module-panasonic-camera-controller.git"
 	},
+	"license": "MIT",
+	"dependencies": {
+		"@companion-module/base": "~1.11.2"
+	},
 	"devDependencies": {
-		"@companion-module/tools": "^1.2.0"
-	}
+		"@companion-module/tools": "^2.1.1",
+		"eslint": "^9.23.0",
+		"prettier": "^3.5.3"
+	},
+	"prettier": "@companion-module/tools/.prettierrc.json",
+	"packageManager": "yarn@4.5.3"
 }
