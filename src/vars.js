@@ -1,11 +1,11 @@
-export function initVariables(self) {
+export function setVariables(self) {
 	const variables = [
 		{ variableId: 'camera', name: 'Selected Camera' },
 		{ variableId: 'group', name: 'Selected Group' },
 		{ variableId: 'port', name: 'Selected Port' },
 	]
 
-	self.setVariableDefinitions(variables)
+	return variables
 }
 export function checkVariables(self) {
 	self.setVariableValues({

@@ -1,6 +1,6 @@
 import { combineRgb } from '@companion-module/base'
 
-export function initPresets(self) {
+export function setPresets(self) {
 	var p = self.product
 	var presets = []
 
@@ -241,5 +241,5 @@ export function initPresets(self) {
 		}
 	}
 
-	self.setPresetDefinitions(presets)
+	return presets
 }

@@ -1,7 +1,7 @@
 import { CAMERA_LABEL, GROUP_LABEL, PORT_LABEL } from './common.js'
 
-export function initActions(self) {
-	var actions = {}
+export function setActions(self) {
+	const actions = {}
 
 	actions.selectCamera = {
 		name: 'Select Camera',
@@ -14,8 +14,8 @@ export function initActions(self) {
 				choices: self.product.cameraChoices,
 			},
 		],
-		callback: async (event) => {
-			await self.api.sendCommand(`XCN:01:${event.options.camera}`).then()
+		callback: async (action) => {
+			await self.sendCommand(`XCN:01:${action.options.camera}`)
 		},
 	}
 
@@ -30,8 +30,8 @@ export function initActions(self) {
 				choices: self.product.groupChoices,
 			},
 		],
-		callback: async (event) => {
-			await self.api.sendCommand(`XGP:${event.options.group}`).then()
+		callback: async (action) => {
+			await self.sendCommand(`XGP:${action.options.group}`)
 		},
 	}
 
@@ -53,8 +53,8 @@ export function initActions(self) {
 				choices: self.product.portChoices,
 			},
 		],
-		callback: async (event) => {
-			await self.api.sendCommand(`XCN:02:${event.options.group}:${event.options.port}`).then()
+		callback: async (action) => {
+			await self.sendCommand(`XCN:02:${action.options.group}:${action.options.port}`)
 		},
 	}
 
@@ -69,8 +69,8 @@ export function initActions(self) {
 				choices: self.product.portChoices,
 			},
 		],
-		callback: async (event) => {
-			await self.api.sendCommand(`XPT:${event.options.port}`).then()
+		callback: async (action) => {
+			await self.sendCommand(`XPT:${action.options.port}`)
 		},
 	}
 
@@ -86,8 +86,8 @@ export function initActions(self) {
 					choices: self.product.presetChoices,
 				},
 			],
-			callback: async (event) => {
-				await self.api.sendCommand(`XPM:01:${event.options.preset}`).then()
+			callback: async (action) => {
+				await self.sendCommand(`XPM:01:${action.options.preset}`)
 			},
 		}
 	}
@@ -115,12 +115,12 @@ export function initActions(self) {
 					choices: self.product.tracingChoices,
 				},
 			],
-			callback: async (event) => {
-				var trace = event.options.trace
-				if (event.options.opt == '01') {
+			callback: async (action) => {
+				var trace = action.options.trace
+				if (action.options.opt == '01') {
 					trace = '000'
 				}
-				await self.api.sendCommand(`XPM:${event.options.opt}:${trace}`).then()
+				await self.sendCommand(`XPM:${action.options.opt}:${trace}`)
 			},
 		}
 	}
