@@ -124,5 +124,5 @@ export function setActions(self) {
 		}
 	}
 
-	self.setActionDefinitions(actions)
+	return actions
 }
