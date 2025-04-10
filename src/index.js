@@ -7,7 +7,7 @@ import UpgradeScripts from './upgrades.js'
 import { setVariables, checkVariables } from './vars.js'
 import { ConfigFields } from './config.js'
 
-class PTZControlerInstance extends InstanceBase {
+class PTZControllerInstance extends InstanceBase {
 	constructor(internal) {
 		super(internal)
 
@@ -223,4 +223,4 @@ class PTZControlerInstance extends InstanceBase {
 	}
 }
 
-runEntrypoint(PTZControlerInstance, UpgradeScripts)
+runEntrypoint(PTZControllerInstance, UpgradeScripts)
