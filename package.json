@@ -15,9 +15,7 @@
 	},
 	"license": "MIT",
 	"dependencies": {
-		"@companion-module/base": "~1.11.2",
-		"got": "^14.4.7",
-		"node-fetch": "^3.3.2"
+		"@companion-module/base": "~1.11.2"
 	},
 	"devDependencies": {
 		"@companion-module/tools": "^2.1.1",

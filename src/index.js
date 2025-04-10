@@ -6,8 +6,6 @@ import { setPresets } from './presets.js'
 import UpgradeScripts from './upgrades.js'
 import { setVariables, checkVariables } from './vars.js'
 import { ConfigFields } from './config.js'
-import fetch from 'node-fetch';
-import got from 'got'
 
 class PTZControllerInstance extends InstanceBase {
 	constructor(internal) {
@@ -86,10 +84,13 @@ class PTZControllerInstance extends InstanceBase {
 		try {
 			await this.getAPI(cmd, options)
 
+			this.updateStatus(InstanceStatus.Ok)
+
 			this.checkVariables()
 			this.checkFeedbacks()
 		} catch (error) {
 			this.log('debug', 'FAILED ' + String(error))
+			this.updateStatus(InstanceStatus.ConnectionFailure, String(error))
 		} finally {
 			// force status update
 			if (!this.config.enablePolling) this.pullData()
@@ -106,13 +107,14 @@ class PTZControllerInstance extends InstanceBase {
 
 		const options = { signal: AbortSignal.any([t, c.signal, this.controller.signal]) }
 
-	
 		const requests = cmds.map((cmd) => this.getAPI(cmd, options))
 
 		const start = Date.now()
 		try {
 			await Promise.all(requests)
 			this.log('debug', `...all done after ${Date.now() - start}ms`)
+
+			this.updateStatus(InstanceStatus.Ok)
 
 			this.checkVariables()
 			this.checkFeedbacks()
@@ -130,13 +132,9 @@ class PTZControllerInstance extends InstanceBase {
 		const url = `http://${this.config.host}:${this.config.httpPort}/cgi-bin/aw_cam?cmd=${cmd}&res=1`
 		this.log('debug', 'GET ' + url)
 
-		const response = await got(url, options)
+		const response = await fetch(url, options)
 		if (!response.ok || !response.status == 200) throw new Error(`HTTP error: ${response.status}`)
-
-		this.updateStatus(InstanceStatus.Ok)
-		this.parseData(response.body)
-
-		return response.body
+		this.parseData(await response.text())
 	}
 
 	parseData(body) {

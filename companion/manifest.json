@@ -19,21 +19,24 @@
 	],
 	"legacyIds": [],
 	"runtime": {
-		"type": "node22",
+		"type": "node18",
 		"api": "nodejs-ipc",
 		"apiVersion": "0.0.0",
 		"entrypoint": "../src/index.js"
 	},
 	"manufacturer": "Panasonic",
 	"products": [
+		"Remote Camera Controller"
+	],
+	"keywords": [
+		"Panasonic",
+		"PTZ",
+		"Remote",
+		"Camera",
+		"Controller",
 		"AW-RP50",
 		"AW-RP60",
 		"AW-RP120",
 		"AW-RP150"
-	],
-	"keywords": [
-		"PTZ",
-		"Camera",
-		"Controller"
 	]
 }
