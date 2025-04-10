@@ -6,6 +6,8 @@ import { setPresets } from './presets.js'
 import UpgradeScripts from './upgrades.js'
 import { setVariables, checkVariables } from './vars.js'
 import { ConfigFields } from './config.js'
+import fetch from 'node-fetch';
+import got from 'got'
 
 class PTZControllerInstance extends InstanceBase {
 	constructor(internal) {
@@ -102,10 +104,9 @@ class PTZControllerInstance extends InstanceBase {
 		const c = new AbortController()
 		const t = AbortSignal.timeout(this.config.apiPollInterval - 100)
 
-		const options = { method: 'GET',
-		signal: AbortSignal.any([t, c.signal, this.controller.signal])
-	}
+		const options = { signal: AbortSignal.any([t, c.signal, this.controller.signal]) }
 
+	
 		const requests = cmds.map((cmd) => this.getAPI(cmd, options))
 
 		const start = Date.now()
@@ -129,11 +130,7 @@ class PTZControllerInstance extends InstanceBase {
 		const url = `http://${this.config.host}:${this.config.httpPort}/cgi-bin/aw_cam?cmd=${cmd}&res=1`
 		this.log('debug', 'GET ' + url)
 
-		//options.mode = 'no-cors'
-
-		const myRequest = new Request(url, options);
-
-		const response = await fetch(myRequest)
+		const response = await got(url, options)
 		if (!response.ok || !response.status == 200) throw new Error(`HTTP error: ${response.status}`)
 
 		this.updateStatus(InstanceStatus.Ok)
