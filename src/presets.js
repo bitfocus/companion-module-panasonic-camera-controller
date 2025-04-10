@@ -1,22 +1,27 @@
 import { combineRgb } from '@companion-module/base'
 
 export function setPresets(self) {
-	var p = self.product
 	var presets = []
 
-	const foregroundColor = combineRgb(255, 255, 255) // White
-	const backgroundColor = combineRgb(255, 0, 0) // Red
+	const colorWhite = combineRgb(255, 255, 255)
+	const colorRed = combineRgb(255, 0, 0)
+	const colorGreen = combineRgb(0, 255, 0)
+	const colorOrange = combineRgb(255, 102, 0)
+	const colorBlue = combineRgb(0, 51, 204)
+	const colorGrey = combineRgb(51, 51, 51)
+	const colorPurple = combineRgb(153, 0, 153)
+	const colorBlack = combineRgb(0, 0, 0)
 
-	for (var x = 0; x < p.cameraChoices.length; x++) {
+	for (var x = 0; x < self.product.cameraChoices.length; x++) {
 		presets.push({
 			type: 'button',
 			category: 'Select camera',
 			name: 'Select camera by camera number',
 			style: {
-				text: 'Select\\n' + p.cameraChoices[x].label,
+				text: 'Select\\n' + self.product.cameraChoices[x].label,
 				size: '14',
-				color: '16777215',
-				bgcolor: combineRgb(0, 0, 0),
+				color: colorWhite,
+				bgcolor: colorBlack,
 			},
 			steps: [
 				{
@@ -24,7 +29,7 @@ export function setPresets(self) {
 						{
 							actionId: 'selectCamera',
 							options: {
-								camera: p.cameraChoices[x].id,
+								camera: self.product.cameraChoices[x].id,
 							},
 						},
 					],
@@ -35,11 +40,11 @@ export function setPresets(self) {
 				{
 					feedbackId: 'cameraSelected',
 					options: {
-						camera: p.cameraChoices[x].id,
+						camera: self.product.cameraChoices[x].id,
 					},
 					style: {
-						color: foregroundColor,
-						bgcolor: backgroundColor,
+						color: colorWhite,
+						bgcolor: colorRed,
 					},
 				},
 			],
@@ -47,16 +52,16 @@ export function setPresets(self) {
 	}
 
 	// Generate group presets
-	for (var x = 0; x < p.groupChoices.length; x++) {
+	for (let x = 0; x < self.product.groupChoices.length; x++) {
 		presets.push({
 			type: 'button',
 			category: 'Select group',
 			name: 'Select camera group',
 			style: {
-				text: 'Select\\n' + p.groupChoices[x].label,
+				text: 'Select\\n' + self.product.groupChoices[x].label,
 				size: '14',
-				color: '16777215',
-				bgcolor: combineRgb(0, 0, 0),
+				color: colorWhite,
+				bgcolor: colorBlack,
 			},
 			steps: [
 				{
@@ -64,7 +69,7 @@ export function setPresets(self) {
 						{
 							actionId: 'selectGroup',
 							options: {
-								group: p.groupChoices[x].id,
+								group: self.product.groupChoices[x].id,
 							},
 						},
 					],
@@ -75,11 +80,11 @@ export function setPresets(self) {
 				{
 					feedbackId: 'groupSelected',
 					options: {
-						group: p.groupChoices[x].id,
+						group: self.product.groupChoices[x].id,
 					},
 					style: {
-						color: foregroundColor,
-						bgcolor: backgroundColor,
+						color: colorWhite,
+						bgcolor: colorRed,
 					},
 				},
 			],
@@ -87,16 +92,16 @@ export function setPresets(self) {
 	}
 
 	// Generate port presets
-	for (var x = 0; x < p.portChoices.length; x++) {
+	for (let x = 0; x < self.product.portChoices.length; x++) {
 		presets.push({
 			type: 'button',
 			category: 'Select port',
 			name: 'Select port',
 			style: {
-				text: 'Select\\n' + p.portChoices[x].label,
+				text: 'Select\\n' + self.product.portChoices[x].label,
 				size: '14',
-				color: '16777215',
-				bgcolor: combineRgb(0, 0, 0),
+				color: colorWhite,
+				bgcolor: colorBlack,
 			},
 			steps: [
 				{
@@ -104,7 +109,7 @@ export function setPresets(self) {
 						{
 							actionId: 'selectPort',
 							options: {
-								port: p.portChoices[x].id,
+								port: self.product.portChoices[x].id,
 							},
 						},
 					],
@@ -115,11 +120,11 @@ export function setPresets(self) {
 				{
 					feedbackId: 'portSelected',
 					options: {
-						port: p.portChoices[x].id,
+						port: self.product.portChoices[x].id,
 					},
 					style: {
-						color: foregroundColor,
-						bgcolor: backgroundColor,
+						color: colorWhite,
+						bgcolor: colorRed,
 					},
 				},
 			],
@@ -134,8 +139,8 @@ export function setPresets(self) {
 		style: {
 			text: 'Select\\nGroup +\\nPort',
 			size: '14',
-			color: '16777215',
-			bgcolor: combineRgb(0, 0, 0),
+			color: colorWhite,
+			bgcolor: colorBlack,
 		},
 		steps: [
 			{
@@ -155,17 +160,17 @@ export function setPresets(self) {
 	})
 
 	// Generate preset memory presets
-	if (p.presetMemory == true) {
-		for (var x = 0; x < p.presetChoices.length; x++) {
+	if (self.product.presetMemory == true) {
+		for (let x = 0; x < self.product.presetChoices.length; x++) {
 			presets.push({
 				type: 'button',
 				category: 'Preset memory',
 				name: 'Select preset memory',
 				style: {
-					text: 'Recall\\n' + p.presetChoices[x].label,
+					text: 'Recall\\n' + self.product.presetChoices[x].label,
 					size: '14',
-					color: '16777215',
-					bgcolor: combineRgb(0, 0, 0),
+					color: colorWhite,
+					bgcolor: colorBlack,
 				},
 				steps: [
 					{
@@ -173,7 +178,7 @@ export function setPresets(self) {
 							{
 								actionId: 'presetMemory',
 								options: {
-									preset: p.presetChoices[x].id,
+									preset: self.product.presetChoices[x].id,
 								},
 							},
 						],
@@ -186,17 +191,17 @@ export function setPresets(self) {
 	}
 
 	// Generate tracing presets
-	if (p.tracingMemory == true) {
-		for (var x = 0; x < p.tracingChoices.length; x++) {
+	if (self.product.tracingMemory == true) {
+		for (let x = 0; x < self.product.tracingChoices.length; x++) {
 			presets.push({
 				type: 'button',
 				category: 'Tracing memory',
-				name: p.tracingChoices[x].label,
+				name: self.product.tracingChoices[x].label,
 				style: {
-					text: 'Standby/Play/Stop\\n' + p.tracingChoices[x].label,
+					text: self.product.tracingChoices[x].label + '\\nStandby',
 					size: '14',
-					color: '16777215',
-					bgcolor: combineRgb(255, 0, 255),
+					color: colorWhite,
+					bgcolor: colorOrange,
 				},
 				steps: [
 					{
@@ -205,31 +210,63 @@ export function setPresets(self) {
 								actionId: 'tracingMemory',
 								options: {
 									opt: '02',
-									preset: p.tracingChoices[x].id,
+									trace: self.product.tracingChoices[x].id,
 								},
 							},
 						],
 						up: [],
 					},
-					{
-						down: [
-							{
-								actionId: 'tracingMemory',
-								options: {
-									opt: '01',
-									preset: p.tracingChoices[x].id,
-								},
+				],
+				feedbacks: [],
+			})
+		}
+
+		presets.push({
+			type: 'button',
+			category: 'Tracing memory',
+			name: 'TMEM Play',
+			style: {
+				text: 'TMEM\\nPlay',
+				size: '14',
+				color: colorWhite,
+				bgcolor: colorRed,
+			},
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'tracingMemory',
+							options: {
+								opt: '01',
+								trace: self.product.tracingChoices[0].id,
 							},
-						],
-						up: [],
-					},
+						},
+					],
+					up: [],
+				},
+			],
+			feedbacks: [],
+		})
+
+		for (let x = 0; x < self.product.tracingChoices.length; x++) {
+			presets.push({
+				type: 'button',
+				category: 'Tracing memory',
+				name: self.product.tracingChoices[x].label,
+				style: {
+					text: self.product.tracingChoices[x].label + '\\nStop',
+					size: '14',
+					color: colorWhite,
+					bgcolor: colorGrey,
+				},
+				steps: [
 					{
 						down: [
 							{
 								actionId: 'tracingMemory',
 								options: {
 									opt: '00',
-									preset: p.tracingChoices[x].id,
+									trace: self.product.tracingChoices[x].id,
 								},
 							},
 						],

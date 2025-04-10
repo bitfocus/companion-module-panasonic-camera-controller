@@ -10,7 +10,7 @@ export function setActions(self) {
 				type: 'dropdown',
 				label: CAMERA_LABEL,
 				id: 'camera',
-				default: '1',
+				default: self.product.cameraChoices[0].id,
 				choices: self.product.cameraChoices,
 			},
 		],
@@ -26,7 +26,7 @@ export function setActions(self) {
 				type: 'dropdown',
 				label: 'Group',
 				id: 'group',
-				default: '1',
+				default: self.product.groupChoices[0].id,
 				choices: self.product.groupChoices,
 			},
 		],
@@ -42,14 +42,14 @@ export function setActions(self) {
 				type: 'dropdown',
 				label: GROUP_LABEL,
 				id: 'group',
-				default: '1',
+				default: self.product.groupChoices[0].id,
 				choices: self.product.groupChoices,
 			},
 			{
 				type: 'dropdown',
 				label: PORT_LABEL,
 				id: 'port',
-				default: '1',
+				default: self.product.portChoices[0].id,
 				choices: self.product.portChoices,
 			},
 		],
@@ -65,7 +65,7 @@ export function setActions(self) {
 				type: 'dropdown',
 				label: PORT_LABEL,
 				id: 'port',
-				default: '1',
+				default: self.product.portChoices[0].id,
 				choices: self.product.portChoices,
 			},
 		],
@@ -76,13 +76,13 @@ export function setActions(self) {
 
 	if (self.product.presetMemory == true) {
 		actions.presetMemory = {
-			name: 'Select Preset Memory',
+			name: 'Recall Preset memory',
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Select Preset',
+					label: 'Preset',
 					id: 'preset',
-					default: '001',
+					default: self.product.presetChoices[0].id,
 					choices: self.product.presetChoices,
 				},
 			],
@@ -94,11 +94,11 @@ export function setActions(self) {
 
 	if (self.product.tracingMemory == true) {
 		actions.tracingMemory = {
-			name: 'Select Tracing Memory',
+			name: 'Tracing memory',
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Option',
+					label: 'Operation',
 					id: 'opt',
 					default: '02',
 					choices: [
@@ -109,16 +109,15 @@ export function setActions(self) {
 				},
 				{
 					type: 'dropdown',
-					label: 'Select Trace',
+					label: 'Memory',
 					id: 'trace',
+					default: self.product.tracingChoices[0].id,
 					choices: self.product.tracingChoices,
+					isVisible: (options) => options.opt !== '01',
 				},
 			],
 			callback: async (action) => {
-				var trace = action.options.trace
-				if (action.options.opt == '01') {
-					trace = '000'
-				}
+				const trace = action.options.opt === '01' ? '000' : action.options.trace
 				await self.sendCommand(`XPM:${action.options.opt}:${trace}`)
 			},
 		}

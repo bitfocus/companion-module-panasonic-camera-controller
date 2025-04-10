@@ -21,14 +21,13 @@ class PTZControllerInstance extends InstanceBase {
 		this.config = config
 
 		this.data = {
-			camera: 'NaN',
-			group: 'NaN',
-			port: 'NaN',
+			camera: null,
+			group: null,
+			port: null,
 		}
 
 		this.config = config
 		this.config.model = this.config.model || 'AW-RP50'
-		this.config.enablePolling = this.config.enablePolling || true
 
 		this.product = initProduct(this.config.model)
 
@@ -78,19 +77,14 @@ class PTZControllerInstance extends InstanceBase {
 		this.log('debug', 'sendCommand()')
 
 		const options = {
-			signal: AbortSignal.any([AbortSignal.timeout(10000), this.controller.signal]),
+			signal: AbortSignal.any([AbortSignal.timeout(1000), this.controller.signal]),
 		}
 
 		try {
 			await this.getAPI(cmd, options)
-
-			this.updateStatus(InstanceStatus.Ok)
-
-			this.checkVariables()
-			this.checkFeedbacks()
 		} catch (error) {
-			this.log('debug', 'FAILED ' + String(error))
-			this.updateStatus(InstanceStatus.ConnectionFailure, String(error))
+			// most controllers do not respond in any way after receiving a HTTP request.
+			// they just close the tcp connection.
 		} finally {
 			// force status update
 			if (!this.config.enablePolling) this.pullData()
@@ -100,7 +94,8 @@ class PTZControllerInstance extends InstanceBase {
 	async pullData() {
 		this.log('debug', 'pullData()')
 
-		const cmds = [`XQC:01`, `XQC:02`]
+		//const cmds = [`XQC:01`, `XQC:02`]
+		const cmds = [`XQC:01`]
 
 		const c = new AbortController()
 		const t = AbortSignal.timeout(this.config.apiPollInterval - 100)
@@ -146,20 +141,20 @@ class PTZControllerInstance extends InstanceBase {
 
 		switch (response[0]) {
 			case 'XPT':
-				this.data.port = response[1]
+				this.data.port = parseInt(response[1])
 				break
 			case 'XGP':
-				this.data.group = response[1]
+				this.data.group = parseInt(response[1])
 				break
 			case 'XCN':
 			case 'XQC':
 				switch (response[1]) {
 					case '01':
-						this.data.camera = response[2]
+						this.data.camera = parseInt(response[2])
 						break
 					case '02':
-						this.data.group = response[2]
-						this.data.port = response[3]
+						this.data.group = parseInt(response[2])
+						this.data.port = parseInt(response[3])
 						break
 				}
 				break

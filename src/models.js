@@ -43,12 +43,12 @@ export function generateChoices(label, numberOfChoices) {
 
 	if (label == PRESET_LABEL || label == TRACING_LABEL) {
 		return Array.from({ length: numberOfChoices }, () => ({
-			id: ('00' + choice.toString(10)).slice(-3),
+			id: String(choice).padStart(3, '0'),
 			label: `${label} ${choice++}`,
 		}))
 	} else {
 		return Array.from({ length: numberOfChoices }, () => ({
-			id: `${choice}`,
+			id: choice,
 			label: `${label} ${choice++}`,
 		}))
 	}
@@ -63,7 +63,7 @@ export function initProduct(product) {
 			PRODUCTS[product].presetChoices = generateChoices(PRESET_LABEL, 100)
 		}
 		if (PRODUCTS[product].tracingMemory) {
-			PRODUCTS[product].tracingChoices = generateChoices(TRACING_LABEL, 100)
+			PRODUCTS[product].tracingChoices = generateChoices(TRACING_LABEL, 10)
 		}
 	}
 	return PRODUCTS[product]
