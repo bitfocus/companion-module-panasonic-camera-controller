@@ -100,7 +100,6 @@ export function setActions(self) {
 					type: 'dropdown',
 					label: 'Option',
 					id: 'opt',
-					default: 'Standby',
 					default: '02',
 					choices: [
 						{ id: '02', label: 'Standby' },
