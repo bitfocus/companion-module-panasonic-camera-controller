@@ -25,9 +25,6 @@ class PTZControllerInstance extends InstanceBase {
 		}
 
 		this.config = config
-		this.config.polldelay = this.config.polldelay || 100
-		this.config.polling = this.config.polling || true
-
 		this.product = initProduct(this.config.model)
 
 		this.init_variables()
@@ -67,13 +64,10 @@ class PTZControllerInstance extends InstanceBase {
 		this.log('debug', 'sendCommand()')
 
 		this.queue.enqueue(cmd)
-		this.queue.enqueue('XQC:01')
-		this.queue.enqueue('XQC:02')
 
-		if (!this.controller.signal.aborted) {
-			if (!this.config.polling && this.pollID === null) {
-				this.pullData()
-			}
+		if (!this.controller.signal.aborted && !this.config.polling) {
+			this.queue.enqueue('XQC:01')
+			await this.pullData()
 		}
 	}
 
@@ -82,7 +76,6 @@ class PTZControllerInstance extends InstanceBase {
 
 		if (this.queue.isEmpty()) {
 			this.queue.enqueue('XQC:01')
-			this.queue.enqueue('XQC:02')
 		}
 
 		const t = AbortSignal.timeout(1 * 2500) // (this.config.polldelay - 50)
@@ -107,22 +100,21 @@ class PTZControllerInstance extends InstanceBase {
 					break
 				case 'AbortError':
 				case 'TypeError':
-					// RP controllers do not respond to a command in any way.
-					// They may close the tcp connection after the first line of the HTTP request was received.
+					// RP controllers (execpting the RP50) do not respond to a command in any way.
+					// The TCP connection will be closed immediately once the first line of the HTTP request is received by the device.
 					break
 				default:
 					this.log('error', String(error))
 					break
 			}
 		} finally {
-			this.log('debug', `...returned after ${Date.now() - start}ms`)
-			this.log('debug', String(this.queue.size()) + ' commands left in queue')
+			const dt = Date.now() - start
+			this.log('debug', `...returned after ${dt}ms. ${String(this.queue.size())} commands left in queue.`)
 
 			this.checkVariables()
 			this.checkFeedbacks()
 
 			if (!this.controller.signal.aborted) {
-				// If polling is enabled or there are still commands in the queue, continue polling
 				if (this.config.polling || !this.queue.isEmpty()) {
 					this.pollID = setTimeout(() => this.pullData(), this.config.polldelay)
 				}
@@ -146,21 +138,21 @@ class PTZControllerInstance extends InstanceBase {
 		this.log('debug', 'Response: ' + line)
 
 		switch (response[0]) {
-			case 'XPT':
+			case 'XPT': // RP50 only
 				this.data.port = response[1]
 				break
-			case 'XGP':
+			case 'XGP': // RP50 only
 				this.data.group = response[1]
 				break
-			case 'XCN':
+			case 'XCN': // RP50 only
 			case 'XQC':
 				switch (response[1]) {
-					case '01':
+					case '01': // Camera number
 						this.data.camera = parseInt(response[2], 10)
 						this.data.group = ~~((this.data.camera - 1) / this.product.numberOfPorts) + 1
 						this.data.port = ((this.data.camera - 1) % this.product.numberOfPorts) + 1
 						break
-					case '02':
+					case '02': // Camera Group/Port
 						this.data.group = parseInt(response[2], 10)
 						this.data.port = parseInt(response[3], 10)
 						this.data.camera = (this.data.group - 1) * this.product.numberOfPorts + this.data.port
