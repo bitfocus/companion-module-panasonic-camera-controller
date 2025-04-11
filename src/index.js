@@ -78,7 +78,7 @@ class PTZControllerInstance extends InstanceBase {
 			this.queue.enqueue('XQC:01')
 		}
 
-		const t = AbortSignal.timeout(1 * 2500) // (this.config.polldelay - 50)
+		const t = AbortSignal.timeout(2500)
 
 		const options = {
 			headers: { Connection: 'close' },
@@ -100,7 +100,7 @@ class PTZControllerInstance extends InstanceBase {
 					break
 				case 'AbortError':
 				case 'TypeError':
-					// RP controllers (execpting the RP50) do not respond to a command in any way.
+					// The RP controllers (execpting the RP50) do not respond to a command in any way.
 					// The TCP connection will be closed immediately once the first line of the HTTP request is received by the device.
 					break
 				default:
