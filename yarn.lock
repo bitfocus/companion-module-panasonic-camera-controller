@@ -754,6 +754,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"dbly-linked-list@npm:0.3.4":
+  version: 0.3.4
+  resolution: "dbly-linked-list@npm:0.3.4"
+  dependencies:
+    lodash.isequal: "npm:^4.5.0"
+  checksum: 10c0/092f85b2ca3d9357ec98fbb1d9744419f4f62fb31c6d3952f5bdc986daf236f94a72c8dd71245dda005cf6b2429b6f882327074a95be34e7f0871fe588280c19
+  languageName: node
+  linkType: hard
+
 "debug@npm:^4.3.1, debug@npm:^4.3.2":
   version: 4.4.0
   resolution: "debug@npm:4.4.0"
@@ -1440,6 +1449,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"lodash.isequal@npm:^4.5.0":
+  version: 4.5.0
+  resolution: "lodash.isequal@npm:4.5.0"
+  checksum: 10c0/dfdb2356db19631a4b445d5f37868a095e2402292d59539a987f134a8778c62a2810c2452d11ae9e6dcac71fc9de40a6fedcb20e2952a15b431ad8b29e50e28f
+  languageName: node
+  linkType: hard
+
 "lodash.merge@npm:^4.6.2":
   version: 4.6.2
   resolution: "lodash.merge@npm:4.6.2"
@@ -1673,6 +1689,7 @@ __metadata:
     "@companion-module/tools": "npm:^2.1.1"
     eslint: "npm:^9.24.0"
     prettier: "npm:^3.5.3"
+    queue-fifo: "npm:^0.2.6"
   languageName: unknown
   linkType: soft
 
@@ -1767,6 +1784,15 @@ __metadata:
   version: 2.3.1
   resolution: "punycode@npm:2.3.1"
   checksum: 10c0/14f76a8206bc3464f794fb2e3d3cc665ae416c01893ad7a02b23766eb07159144ee612ad67af5e84fa4479ccfe67678c4feb126b0485651b302babf66f04f9e9
+  languageName: node
+  linkType: hard
+
+"queue-fifo@npm:^0.2.6":
+  version: 0.2.6
+  resolution: "queue-fifo@npm:0.2.6"
+  dependencies:
+    dbly-linked-list: "npm:0.3.4"
+  checksum: 10c0/f6cd84ddf9bbbf16cefb38ab95639117ed0379b2c7f0d0316702d17423dd80421c740c027eb73e7a80d84787f7cb0344719c3fbce970bcafcf543867c6a8dc6f
   languageName: node
   linkType: hard
 

@@ -44,7 +44,7 @@ export function setPresets(self) {
 					},
 					style: {
 						color: colorWhite,
-						bgcolor: colorRed,
+						bgcolor: colorOrange,
 					},
 				},
 			],
@@ -84,7 +84,7 @@ export function setPresets(self) {
 					},
 					style: {
 						color: colorWhite,
-						bgcolor: colorRed,
+						bgcolor: colorGreen,
 					},
 				},
 			],
@@ -124,7 +124,7 @@ export function setPresets(self) {
 					},
 					style: {
 						color: colorWhite,
-						bgcolor: colorRed,
+						bgcolor: colorOrange,
 					},
 				},
 			],

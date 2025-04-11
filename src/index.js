@@ -98,13 +98,13 @@ class PTZControllerInstance extends InstanceBase {
 			if (dt > 50) {
 				this.log('warning', `...polling took ${dt}ms`)
 			}
-			this.log('info', `...all done after ${dt}ms`)
+			this.log('debug', `...all done after ${dt}ms`)
 
 			this.updateStatus(InstanceStatus.Ok)
 		} catch (error) {
+			this.log('error', `...errored after ${Date.now() - start}ms`)
 			switch (error.name) {
 				case 'TimeoutError':
-					//this.log('warning', 'Timeout')
 					this.updateStatus(
 						InstanceStatus.ConnectionFailure,
 						'Timeout - Check configuration and connection to the controller',
@@ -118,7 +118,6 @@ class PTZControllerInstance extends InstanceBase {
 					this.log('error', String(error))
 					break
 			}
-			this.log('error', `...errored after ${Date.now() - start}ms`)
 		} finally {
 			if (this.config.polling) this.pollID = setTimeout(() => this.pullData(), this.config.polldelay)
 		}
@@ -151,12 +150,13 @@ class PTZControllerInstance extends InstanceBase {
 				switch (response[1]) {
 					case '01':
 						this.data.camera = parseInt(response[2], 10)
-						this.data.group = this.data.camera % this.product.numberOfGroups // ~~((this.data.camera - 1) / this.product.numberOfGroups) + 1
-						this.data.port = this.data.camera % this.product.numberOfPorts
+						this.data.group = ~~((this.data.camera - 1) / this.product.numberOfPorts) + 1
+						this.data.port = ((this.data.camera - 1) % this.product.numberOfPorts) + 1
 						break
 					case '02':
-						this.data.group = response[2]
-						this.data.port = response[3]
+						this.data.group = parseInt(response[2], 10)
+						this.data.port = parseInt(response[3], 10)
+						this.data.camera = this.data.group * this.product.numberOfPorts + this.data.port
 						break
 				}
 				break
@@ -165,7 +165,7 @@ class PTZControllerInstance extends InstanceBase {
 				switch (response[1]) {
 					case '01':
 						// Recall
-						this.data.pmem = response[2]
+						this.data.pmem = parseInt(response[2], 10)
 						break
 				}
 				break
@@ -174,7 +174,7 @@ class PTZControllerInstance extends InstanceBase {
 				switch (response[1]) {
 					case '02':
 						// Standby
-						this.data.tmem = response[2]
+						this.data.tmem = parseInt(response[2], 10)
 						break
 					case '01':
 						// Play

@@ -121,13 +121,13 @@ export function setActions(self) {
 				let tmem = action.options.trace
 				switch (action.options.opt) {
 					case '02': // Standby
-						self.data.tmem = action.options.trace
+						self.data.tmem = parseInt(action.options.trace, 10)
 						break
 					case '01': // Play
 						tmem = '000'
 						break
 					case '00': // Stop
-						tmem = self.data.tmem ? self.data.tmem : '001'
+						tmem = self.data.tmem ? String(self.data.tmem).padStart(3, '0') : '001'
 						break
 				}
 				await self.sendCommand(`XTM:${action.options.opt}:${tmem}`)
