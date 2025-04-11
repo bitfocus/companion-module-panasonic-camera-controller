@@ -12,26 +12,20 @@ class PTZControllerInstance extends InstanceBase {
 	constructor(internal) {
 		super(internal)
 
-		this.data = {}
-		this.product
-
 		this.pollID = null
 	}
 
 	async init(config) {
-		this.config = config
-
 		this.data = {
 			camera: null,
 			group: null,
 			port: null,
 			pmem: null,
 			tmem: null,
-			performance: null,
 		}
 
 		this.config = config
-		this.config.polldelay = this.config.polldelay || 250
+		this.config.polldelay = this.config.polldelay || 100
 		this.config.polling = this.config.polling || true
 
 		this.product = initProduct(this.config.model)
@@ -113,22 +107,20 @@ class PTZControllerInstance extends InstanceBase {
 					break
 				case 'AbortError':
 				case 'TypeError':
-					// most controllers do not respond in any way after receiving a command.
-					// they just close the tcp connection after the first line of the HTTP request was received
-					//this.log('debug', 'TypeError')
-					// ignore RP resetting TCP connection if device is busy
+					// RP controllers do not respond to a command in any way.
+					// They may close the tcp connection after the first line of the HTTP request was received.
 					break
 				default:
 					this.log('error', String(error))
 					break
 			}
 		} finally {
-			this.data.performance = String(this.queue.size()) + '\n' + String(Date.now() - start)
+			this.log('debug', `...returned after ${Date.now() - start}ms`)
+			this.log('debug', String(this.queue.size()) + ' commands left in queue')
 
 			this.checkVariables()
 			this.checkFeedbacks()
 
-			this.log('debug', `...returned after ${this.data.performance}ms`)
 			if (!this.controller.signal.aborted) {
 				// If polling is enabled or there are still commands in the queue, continue polling
 				if (this.config.polling || !this.queue.isEmpty()) {

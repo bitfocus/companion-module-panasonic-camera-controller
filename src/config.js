@@ -56,8 +56,8 @@ export const ConfigFields = [
 		label: 'API poll settings',
 		value:
 			'Adjusting the API Polling Interval can impact performance. <br />' +
-			'A lower interval allows for more responsive feedback, but may impact CPU usage. <br />' +
-			'Less than 500 ms is not recommended, as the controllers are relatively slow to respond',
+			'A lower delay allows for more responsive feedback, but may impact CPU usage. <br />' +
+			'The controller is not designed to process simultaneous or consecutive requests. To ensure efficient use, all commands are buffered and transmitted one after the other with a sufficient time gap.',
 	},
 	{
 		type: 'checkbox',
@@ -72,16 +72,16 @@ export const ConfigFields = [
 		width: 7,
 		label: 'Polling',
 		value:
-			'Enables periodic updates of the device status. This must be activated in order for feedbacks and variables to reflect the current device status. The interval setting specifies the time between the requests to the device.',
+			'Enables periodic updates of the device status. This must be activated in order for feedbacks and variables to reflect the current device status. The delay setting specifies the gap between the requests to the device.',
 	},
 	{
 		type: 'number',
 		id: 'polldelay',
-		label: 'Interval (ms)',
+		label: 'Delay (ms)',
 		width: 3,
-		default: 250,
-		min: 1,
-		max: 10000,
+		default: 100,
+		min: 25,
+		max: 2500,
 	},
 	{
 		type: 'static-text',
