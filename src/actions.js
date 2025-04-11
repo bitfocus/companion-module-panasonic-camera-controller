@@ -76,7 +76,7 @@ export function setActions(self) {
 
 	if (self.product.presetMemory == true) {
 		actions.presetMemory = {
-			name: 'Recall Preset memory',
+			name: 'Preset memory',
 			options: [
 				{
 					type: 'dropdown',
@@ -87,6 +87,7 @@ export function setActions(self) {
 				},
 			],
 			callback: async (action) => {
+				self.data.pmem = action.options.preset
 				await self.sendCommand(`XPM:01:${action.options.preset}`)
 			},
 		}
@@ -113,12 +114,23 @@ export function setActions(self) {
 					id: 'trace',
 					default: self.product.tracingChoices[0].id,
 					choices: self.product.tracingChoices,
-					isVisible: (options) => options.opt !== '01',
+					isVisible: (options) => options.opt === '02',
 				},
 			],
 			callback: async (action) => {
-				const trace = action.options.opt === '01' ? '000' : action.options.trace
-				await self.sendCommand(`XPM:${action.options.opt}:${trace}`)
+				let tmem = action.options.trace
+				switch (action.options.opt) {
+					case '02': // Standby
+						self.data.tmem = action.options.trace
+						break
+					case '01': // Play
+						tmem = '000'
+						break
+					case '00': // Stop
+						tmem = self.data.tmem ? self.data.tmem : '001'
+						break
+				}
+				await self.sendCommand(`XTM:${action.options.opt}:${tmem}`)
 			},
 		}
 	}

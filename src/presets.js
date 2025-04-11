@@ -198,7 +198,7 @@ export function setPresets(self) {
 				category: 'Tracing memory',
 				name: self.product.tracingChoices[x].label,
 				style: {
-					text: self.product.tracingChoices[x].label + '\\nStandby',
+					text: 'Standby\\n' + self.product.tracingChoices[x].label,
 					size: '14',
 					color: colorWhite,
 					bgcolor: colorOrange,
@@ -226,7 +226,7 @@ export function setPresets(self) {
 			category: 'Tracing memory',
 			name: 'TMEM Play',
 			style: {
-				text: 'TMEM\\nPlay',
+				text: 'Play\\nTMEM',
 				size: '14',
 				color: colorWhite,
 				bgcolor: colorRed,
@@ -248,34 +248,32 @@ export function setPresets(self) {
 			feedbacks: [],
 		})
 
-		for (let x = 0; x < self.product.tracingChoices.length; x++) {
-			presets.push({
-				type: 'button',
-				category: 'Tracing memory',
-				name: self.product.tracingChoices[x].label,
-				style: {
-					text: self.product.tracingChoices[x].label + '\\nStop',
-					size: '14',
-					color: colorWhite,
-					bgcolor: colorGrey,
-				},
-				steps: [
-					{
-						down: [
-							{
-								actionId: 'tracingMemory',
-								options: {
-									opt: '00',
-									trace: self.product.tracingChoices[x].id,
-								},
+		presets.push({
+			type: 'button',
+			category: 'Tracing memory',
+			name: 'TMEM Stop',
+			style: {
+				text: 'Stop\\nTMEM',
+				size: '14',
+				color: colorWhite,
+				bgcolor: colorGrey,
+			},
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'tracingMemory',
+							options: {
+								opt: '00',
+								//trace: '001',
 							},
-						],
-						up: [],
-					},
-				],
-				feedbacks: [],
-			})
-		}
+						},
+					],
+					up: [],
+				},
+			],
+			feedbacks: [],
+		})
 	}
 
 	return presets

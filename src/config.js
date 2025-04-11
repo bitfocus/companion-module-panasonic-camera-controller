@@ -76,11 +76,11 @@ export const ConfigFields = [
 	},
 	{
 		type: 'number',
-		id: 'pollinterval',
+		id: 'polldelay',
 		label: 'Interval (ms)',
 		width: 3,
-		default: 1000,
-		min: 250,
+		default: 250,
+		min: 100,
 		max: 10000,
 	},
 	{

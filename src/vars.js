@@ -3,6 +3,8 @@ export function setVariables(self) {
 		{ variableId: 'camera', name: 'Selected Camera' },
 		{ variableId: 'group', name: 'Selected Group' },
 		{ variableId: 'port', name: 'Selected Port' },
+		{ variableId: 'pmem', name: 'Last selected Preset Memory' },
+		{ variableId: 'tmem', name: 'Last selected Tracing Memory' },
 	]
 
 	return variables
@@ -12,5 +14,7 @@ export function checkVariables(self) {
 		camera: self.data.camera,
 		group: self.data.group,
 		port: self.data.port,
+		pmem: self.data.pmem,
+		tmem: self.data.tmem,
 	})
 }
