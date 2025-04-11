@@ -24,7 +24,7 @@ export function setActions(self) {
 		options: [
 			{
 				type: 'dropdown',
-				label: 'Group',
+				label: GROUP_LABEL,
 				id: 'group',
 				default: self.product.groupChoices[0].id,
 				choices: self.product.groupChoices,
