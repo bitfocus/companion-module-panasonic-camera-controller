@@ -5,7 +5,8 @@ export function setFeedbacks(self) {
 	const feedbacks = {}
 
 	const colorWhite = combineRgb(255, 255, 255)
-	const colorRed = combineRgb(255, 0, 0)
+	const colorOrange = combineRgb(255, 102, 0)
+	const colorGreen = combineRgb(0, 204, 0)
 
 	feedbacks.cameraSelected = {
 		type: 'boolean',
@@ -13,7 +14,7 @@ export function setFeedbacks(self) {
 		description: 'Indicate if Camera is selected',
 		defaultStyle: {
 			color: colorWhite,
-			bgcolor: colorRed,
+			bgcolor: colorOrange,
 		},
 		options: [
 			{
@@ -35,7 +36,7 @@ export function setFeedbacks(self) {
 		description: 'Indicate if Group is selected',
 		defaultStyle: {
 			color: colorWhite,
-			bgcolor: colorRed,
+			bgcolor: colorGreen,
 		},
 		options: [
 			{
@@ -57,7 +58,7 @@ export function setFeedbacks(self) {
 		description: 'Indicate if Port is selected',
 		defaultStyle: {
 			color: colorWhite,
-			bgcolor: colorRed,
+			bgcolor: colorOrange,
 		},
 		options: [
 			{
