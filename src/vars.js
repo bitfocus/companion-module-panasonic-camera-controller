@@ -5,6 +5,7 @@ export function setVariables(self) {
 		{ variableId: 'port', name: 'Selected Port' },
 		{ variableId: 'pmem', name: 'Last selected Preset Memory' },
 		{ variableId: 'tmem', name: 'Last selected Tracing Memory' },
+		{ variableId: 'performance', name: 'communication RTT' },
 	]
 
 	return variables
@@ -16,5 +17,6 @@ export function checkVariables(self) {
 		port: self.data.port,
 		pmem: self.data.pmem,
 		tmem: self.data.tmem,
+		performance: self.data.performance,
 	})
 }

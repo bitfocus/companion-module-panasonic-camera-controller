@@ -6,6 +6,7 @@ import { setPresets } from './presets.js'
 import UpgradeScripts from './upgrades.js'
 import { setVariables, checkVariables } from './vars.js'
 import { ConfigFields } from './config.js'
+import Queue from 'queue-fifo'
 
 class PTZControllerInstance extends InstanceBase {
 	constructor(internal) {
@@ -26,6 +27,7 @@ class PTZControllerInstance extends InstanceBase {
 			port: null,
 			pmem: null,
 			tmem: null,
+			performance: null,
 		}
 
 		this.config = config
@@ -41,21 +43,27 @@ class PTZControllerInstance extends InstanceBase {
 
 		this.checkVariables()
 
+		this.queue = new Queue()
+
 		this.controller = new AbortController()
 
 		this.updateStatus(InstanceStatus.Connecting)
-		this.pullData()
+
+		if (this.pollID === null) {
+			this.pullData()
+		}
 	}
 
 	async destroy() {
-		clearTimeout(this.pollID)
 		this.controller.abort()
+		clearTimeout(this.pollID)
 		this.updateStatus(InstanceStatus.Disconnected)
 	}
 
 	async configUpdated(config) {
-		clearTimeout(this.pollID)
 		this.controller.abort()
+		clearTimeout(this.pollID)
+		this.pollID = null
 		this.updateStatus(InstanceStatus.Disconnected, 'Config changed')
 
 		this.init(config)
@@ -64,24 +72,24 @@ class PTZControllerInstance extends InstanceBase {
 	async sendCommand(cmd) {
 		this.log('debug', 'sendCommand()')
 
-		const options = {
-			headers: { Connection: 'close' },
-			signal: AbortSignal.any([AbortSignal.timeout(2500), this.controller.signal]),
-		}
+		this.queue.enqueue(cmd)
+		this.queue.enqueue('XQC:01')
+		this.queue.enqueue('XQC:02')
 
-		try {
-			await this.getAPI(cmd, options)
-		} catch (error) {
-			// most controllers do not respond in any way after receiving a command.
-			// they just close the tcp connection after the first line of the HTTP request was received.
-		} finally {
-			// force status update
-			if (!this.config.polling) this.pullData()
+		if (!this.controller.signal.aborted) {
+			if (!this.config.polling && this.pollID === null) {
+				this.pullData()
+			}
 		}
 	}
 
 	async pullData() {
 		this.log('debug', 'pullData()')
+
+		if (this.queue.isEmpty()) {
+			this.queue.enqueue('XQC:01')
+			this.queue.enqueue('XQC:02')
+		}
 
 		const t = AbortSignal.timeout(1 * 2500) // (this.config.polldelay - 50)
 
@@ -92,17 +100,10 @@ class PTZControllerInstance extends InstanceBase {
 
 		const start = Date.now()
 		try {
-			await this.getAPI('XQC:01', options)
-			//await this.getAPI('XQC:02', options)
-			const dt = Date.now() - start
-			if (dt > 50) {
-				this.log('warning', `...polling took ${dt}ms`)
-			}
-			this.log('debug', `...all done after ${dt}ms`)
+			await this.getAPI(this.queue.dequeue(), options)
 
 			this.updateStatus(InstanceStatus.Ok)
 		} catch (error) {
-			this.log('error', `...errored after ${Date.now() - start}ms`)
 			switch (error.name) {
 				case 'TimeoutError':
 					this.updateStatus(
@@ -110,16 +111,30 @@ class PTZControllerInstance extends InstanceBase {
 						'Timeout - Check configuration and connection to the controller',
 					)
 					break
-				//case 'TypeError':
-				//this.log('debug', 'TypeError')
-				// ignore RP resetting TCP connection if device is busy
-				//	break
+				case 'AbortError':
+				case 'TypeError':
+					// most controllers do not respond in any way after receiving a command.
+					// they just close the tcp connection after the first line of the HTTP request was received
+					//this.log('debug', 'TypeError')
+					// ignore RP resetting TCP connection if device is busy
+					break
 				default:
 					this.log('error', String(error))
 					break
 			}
 		} finally {
-			if (this.config.polling) this.pollID = setTimeout(() => this.pullData(), this.config.polldelay)
+			this.data.performance = String(this.queue.size()) + '\n' + String(Date.now() - start)
+
+			this.checkVariables()
+			this.checkFeedbacks()
+
+			this.log('debug', `...returned after ${this.data.performance}ms`)
+			if (!this.controller.signal.aborted) {
+				// If polling is enabled or there are still commands in the queue, continue polling
+				if (this.config.polling || !this.queue.isEmpty()) {
+					this.pollID = setTimeout(() => this.pullData(), this.config.polldelay)
+				}
+			}
 		}
 	}
 
@@ -156,7 +171,7 @@ class PTZControllerInstance extends InstanceBase {
 					case '02':
 						this.data.group = parseInt(response[2], 10)
 						this.data.port = parseInt(response[3], 10)
-						this.data.camera = this.data.group * this.product.numberOfPorts + this.data.port
+						this.data.camera = (this.data.group - 1) * this.product.numberOfPorts + this.data.port
 						break
 				}
 				break
@@ -185,9 +200,6 @@ class PTZControllerInstance extends InstanceBase {
 				}
 				break
 		}
-
-		this.checkVariables()
-		this.checkFeedbacks()
 	}
 
 	// Return config fields for web config

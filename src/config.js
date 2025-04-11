@@ -80,7 +80,7 @@ export const ConfigFields = [
 		label: 'Interval (ms)',
 		width: 3,
 		default: 250,
-		min: 100,
+		min: 1,
 		max: 10000,
 	},
 	{
