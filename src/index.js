@@ -27,7 +27,8 @@ class PTZControllerInstance extends InstanceBase {
 		}
 
 		this.config = config
-		this.config.model = this.config.model || 'AW-RP50'
+		this.config.pollinterval = this.config.pollinterval || 1000
+		this.config.polling = this.config.polling || true
 
 		this.product = initProduct(this.config.model)
 
@@ -42,7 +43,7 @@ class PTZControllerInstance extends InstanceBase {
 
 		this.pullData()
 
-		if (this.config.enablePolling) {
+		if (this.config.polling) {
 			this.enablePolling()
 		}
 	}
@@ -63,8 +64,8 @@ class PTZControllerInstance extends InstanceBase {
 
 	enablePolling() {
 		clearInterval(this.pollID)
-		this.pollID = setInterval(() => this.pullData(), this.config.apiPollInterval)
-		this.log('debug', 'Polling enabled with ' + this.config.apiPollInterval + 'ms interval')
+		this.pollID = setInterval(() => this.pullData(), this.config.pollinterval)
+		this.log('debug', 'Polling enabled with ' + this.config.pollinterval + 'ms interval')
 	}
 
 	disablePolling() {
@@ -82,12 +83,15 @@ class PTZControllerInstance extends InstanceBase {
 
 		try {
 			await this.getAPI(cmd, options)
+
+			this.checkVariables()
+			this.checkFeedbacks()
 		} catch (error) {
-			// most controllers do not respond in any way after receiving a HTTP request.
+			// most controllers do not respond in any way after receiving a command request.
 			// they just close the tcp connection.
 		} finally {
 			// force status update
-			if (!this.config.enablePolling) this.pullData()
+			if (!this.config.polling) this.pullData()
 		}
 	}
 
@@ -95,18 +99,22 @@ class PTZControllerInstance extends InstanceBase {
 		this.log('debug', 'pullData()')
 
 		//const cmds = [`XQC:01`, `XQC:02`]
-		const cmds = [`XQC:01`]
+		//const cmds = [`XQC:01`]
 
-		const c = new AbortController()
-		const t = AbortSignal.timeout(this.config.apiPollInterval - 100)
+		//const c = new AbortController()
+		const t = AbortSignal.timeout(this.config.pollinterval - 100)
 
-		const options = { signal: AbortSignal.any([t, c.signal, this.controller.signal]) }
+		//const options = { signal: AbortSignal.any([t, c.signal, this.controller.signal]) }
+		const options = { signal: AbortSignal.any([t, this.controller.signal]) }
 
-		const requests = cmds.map((cmd) => this.getAPI(cmd, options))
+		//const requests = cmds.map((cmd) => this.getAPI(cmd, options))
 
 		const start = Date.now()
 		try {
-			await Promise.all(requests)
+			//await Promise.all(requests)
+			await this.getAPI('XQC:01', options)
+			await this.getAPI('XQC:02', options)
+
 			this.log('debug', `...all done after ${Date.now() - start}ms`)
 
 			this.updateStatus(InstanceStatus.Ok)
@@ -114,7 +122,7 @@ class PTZControllerInstance extends InstanceBase {
 			this.checkVariables()
 			this.checkFeedbacks()
 		} catch (error) {
-			c.abort() // cancel any OTHER pending request
+			//c.abort() // cancel any OTHER pending request
 
 			this.log('error', String(error))
 			this.log('debug', `...errored after ${Date.now() - start}ms`)
@@ -124,7 +132,7 @@ class PTZControllerInstance extends InstanceBase {
 	}
 
 	async getAPI(cmd, options) {
-		const url = `http://${this.config.host}:${this.config.httpPort}/cgi-bin/aw_cam?cmd=${cmd}&res=1`
+		const url = `http://${this.config.host}:${this.config.port}/cgi-bin/aw_cam?cmd=${cmd}&res=1`
 		this.log('debug', 'GET ' + url)
 
 		const response = await fetch(url, options)
@@ -161,7 +169,7 @@ class PTZControllerInstance extends InstanceBase {
 			case 'XPM':
 				switch (response[1]) {
 					case '01':
-						// Preset memory play
+						// Preset memory
 						break
 				}
 				break
