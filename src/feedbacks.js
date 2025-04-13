@@ -7,6 +7,7 @@ export function setFeedbacks(self) {
 	const colorWhite = combineRgb(255, 255, 255)
 	const colorOrange = combineRgb(255, 102, 0)
 	const colorGreen = combineRgb(0, 204, 0)
+	const colorBlue = combineRgb(0, 51, 204)
 
 	feedbacks.cameraSelected = {
 		type: 'boolean',
@@ -71,6 +72,50 @@ export function setFeedbacks(self) {
 		],
 		callback: (feedback) => {
 			return feedback.options.port == self.data.port
+		},
+	}
+
+	feedbacks.presetSelected = {
+		type: 'boolean',
+		name: 'Preset Memory selected',
+		description: 'Indicates if the selected PMEM is currently active (last selected)',
+		defaultStyle: {
+			color: colorWhite,
+			bgcolor: colorBlue,
+		},
+		options: [
+			{
+				type: 'dropdown',
+				label: 'Memory',
+				id: 'pmem',
+				default: self.product.presetChoices[0].id,
+				choices: self.product.presetChoices,
+			},
+		],
+		callback: function (feedback) {
+			return self.data.pmem === feedback.options.pmem
+		},
+	}
+
+	feedbacks.traceSelected = {
+		type: 'boolean',
+		name: 'Tracing Memory selected',
+		description: 'Indicates if the selected TMEM is currently active (last selected)',
+		defaultStyle: {
+			color: colorWhite,
+			bgcolor: colorBlue,
+		},
+		options: [
+			{
+				type: 'dropdown',
+				label: 'Memory',
+				id: 'tmem',
+				default: self.product.tracingChoices[0].id,
+				choices: self.product.tracingChoices,
+			},
+		],
+		callback: function (feedback) {
+			return self.data.tmem === feedback.options.tmem
 		},
 	}
 

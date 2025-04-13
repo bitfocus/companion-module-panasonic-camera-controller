@@ -7,6 +7,7 @@ export function setPresets(self) {
 	const colorRed = combineRgb(255, 0, 0)
 	const colorGreen = combineRgb(0, 204, 0)
 	const colorOrange = combineRgb(255, 102, 0)
+	const colorBlue = combineRgb(0, 51, 204)
 	const colorGrey = combineRgb(51, 51, 51)
 	const colorBlack = combineRgb(0, 0, 0)
 
@@ -183,7 +184,18 @@ export function setPresets(self) {
 						up: [],
 					},
 				],
-				feedbacks: [],
+				feedbacks: [
+					{
+						feedbackId: 'presetSelected',
+						options: {
+							pmem: self.product.presetChoices[x].id,
+						},
+						style: {
+							color: colorWhite,
+							bgcolor: colorBlue,
+						},
+					},
+				],
 			})
 		}
 	}
@@ -215,7 +227,18 @@ export function setPresets(self) {
 						up: [],
 					},
 				],
-				feedbacks: [],
+				feedbacks: [
+					{
+						feedbackId: 'traceSelected',
+						options: {
+							tmem: self.product.tracingChoices[x].id,
+						},
+						style: {
+							color: colorWhite,
+							bgcolor: colorBlue,
+						},
+					},
+				],
 			})
 		}
 

@@ -76,26 +76,26 @@ export function setActions(self) {
 
 	if (self.product.presetMemory == true) {
 		actions.presetMemory = {
-			name: 'Preset memory',
+			name: 'Recall Preset Memory (PMEM)',
 			options: [
 				{
 					type: 'dropdown',
-					label: 'Preset',
+					label: 'Memory',
 					id: 'preset',
 					default: self.product.presetChoices[0].id,
 					choices: self.product.presetChoices,
 				},
 			],
 			callback: async (action) => {
-				self.data.pmem = action.options.preset
 				await self.sendCommand(`XPM:01:${action.options.preset}`)
+				self.data.pmem = action.options.preset
 			},
 		}
 	}
 
 	if (self.product.tracingMemory == true) {
 		actions.tracingMemory = {
-			name: 'Tracing memory',
+			name: 'Recall Tracing Memory (TMEM)',
 			options: [
 				{
 					type: 'dropdown',
@@ -118,19 +118,19 @@ export function setActions(self) {
 				},
 			],
 			callback: async (action) => {
-				let tmem = action.options.trace
 				switch (action.options.opt) {
 					case '02': // Standby
-						self.data.tmem = parseInt(action.options.trace, 10)
+						await self.sendCommand(`XTM:${action.options.opt}:${action.options.trace}`)
+						self.data.tmem = action.options.trace
 						break
 					case '01': // Play
-						tmem = '000'
+						await self.sendCommand(`XTM:${action.options.opt}:000`)
 						break
 					case '00': // Stop
-						tmem = self.data.tmem ? String(self.data.tmem).padStart(3, '0') : '001'
+						const tmem = self.data.tmem ? String(self.data.tmem).padStart(3, '0') : '001'
+						await self.sendCommand(`XTM:${action.options.opt}:${tmem}`)
 						break
 				}
-				await self.sendCommand(`XTM:${action.options.opt}:${tmem}`)
 			},
 		}
 	}

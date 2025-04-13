@@ -78,7 +78,7 @@ class PTZControllerInstance extends InstanceBase {
 			this.queue.enqueue('XQC:01')
 		}
 
-		const t = AbortSignal.timeout(2500)
+		const t = AbortSignal.timeout(5000)
 
 		const options = {
 			headers: { Connection: 'close' },
@@ -92,20 +92,20 @@ class PTZControllerInstance extends InstanceBase {
 			this.updateStatus(InstanceStatus.Ok)
 		} catch (error) {
 			switch (error.name) {
+				case 'TypeError':
+					// The RP controllers (execpting the RP50) do not respond to a command in any way.
+					// The TCP connection will be closed immediately once the first line of the HTTP request is received by the device.
+					break
 				case 'TimeoutError':
 					this.updateStatus(
 						InstanceStatus.ConnectionFailure,
 						'Timeout - Check configuration and connection to the controller',
 					)
-					break
 				case 'AbortError':
-				case 'TypeError':
-					// The RP controllers (execpting the RP50) do not respond to a command in any way.
-					// The TCP connection will be closed immediately once the first line of the HTTP request is received by the device.
+					this.queue.clear()
 					break
 				default:
 					this.log('error', String(error))
-					break
 			}
 		} finally {
 			const dt = Date.now() - start
@@ -138,6 +138,15 @@ class PTZControllerInstance extends InstanceBase {
 		this.log('debug', 'Response: ' + line)
 
 		switch (response[0]) {
+			case 'ER1':
+				this.log('error', 'unsupported command')
+				break
+			case 'ER2':
+				this.log('error', 'busy status')
+				break
+			case 'ER3':
+				this.log('error', 'outside acceptable range')
+				break
 			case 'XPT': // RP50 only
 				this.data.port = response[1]
 				break
