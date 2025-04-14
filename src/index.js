@@ -81,6 +81,7 @@ class PTZControllerInstance extends InstanceBase {
 		const t = AbortSignal.timeout(5000)
 
 		const options = {
+			mode: 'no-cors',
 			headers: { Connection: 'close' },
 			signal: AbortSignal.any([t, this.controller.signal]),
 		}
@@ -127,7 +128,8 @@ class PTZControllerInstance extends InstanceBase {
 		this.log('debug', 'GET ' + url)
 
 		const response = await fetch(url, options)
-		if (!response.ok || !response.status == 200) throw new Error(`HTTP error: ${response.status}`)
+		if (!response.ok || !response.status == 200)
+			throw new Error(`HTTP error: ${response.status} ${response.statusText}`)
 		this.parseData(await response.text())
 	}
 
@@ -138,15 +140,6 @@ class PTZControllerInstance extends InstanceBase {
 		this.log('debug', 'Response: ' + line)
 
 		switch (response[0]) {
-			case 'ER1':
-				this.log('error', 'unsupported command')
-				break
-			case 'ER2':
-				this.log('error', 'busy status')
-				break
-			case 'ER3':
-				this.log('error', 'outside acceptable range')
-				break
 			case 'XPT': // RP50 only
 				this.data.port = response[1]
 				break

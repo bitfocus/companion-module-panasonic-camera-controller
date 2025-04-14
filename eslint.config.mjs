@@ -11,6 +11,7 @@ const customConfig = [
 		rules: {
 			'n/no-missing-import': 'off',
 			'node/no-unpublished-import': 'off',
+			'linebreak-style': ['error', require('os').EOL === '\r\n' ? 'windows' : 'unix'],
 		},
 	},
 ]
