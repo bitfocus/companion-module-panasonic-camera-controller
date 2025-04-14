@@ -14,7 +14,7 @@ export function checkVariables(self) {
 		camera: self.data.camera,
 		group: self.data.group,
 		port: self.data.port,
-		pmem: self.data.pmem,
-		tmem: self.data.tmem,
+		pmem: parseInt(self.data.pmem, 10),
+		tmem: parseInt(self.data.tmem, 10),
 	})
 }

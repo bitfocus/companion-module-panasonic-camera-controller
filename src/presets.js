@@ -9,12 +9,13 @@ export function setPresets(self) {
 	const colorOrange = combineRgb(255, 102, 0)
 	const colorBlue = combineRgb(0, 51, 204)
 	const colorGrey = combineRgb(51, 51, 51)
+	const colorPurple = combineRgb(255, 0, 255)
 	const colorBlack = combineRgb(0, 0, 0)
 
 	for (var x = 0; x < self.product.cameraChoices.length; x++) {
 		presets.push({
 			type: 'button',
-			category: 'Select camera',
+			category: 'Select Camera',
 			name: 'Select camera by camera number',
 			style: {
 				text: 'Select\\n' + self.product.cameraChoices[x].label,
@@ -54,13 +55,13 @@ export function setPresets(self) {
 	for (let x = 0; x < self.product.groupChoices.length; x++) {
 		presets.push({
 			type: 'button',
-			category: 'Select group',
+			category: 'Select Group',
 			name: 'Select camera group',
 			style: {
 				text: 'Select\\n' + self.product.groupChoices[x].label,
 				size: '14',
 				color: colorWhite,
-				bgcolor: colorBlack,
+				bgcolor: colorBlue,
 			},
 			steps: [
 				{
@@ -94,8 +95,8 @@ export function setPresets(self) {
 	for (let x = 0; x < self.product.portChoices.length; x++) {
 		presets.push({
 			type: 'button',
-			category: 'Select port',
-			name: 'Select port',
+			category: 'Select Port',
+			name: 'Select camera port',
 			style: {
 				text: 'Select\\n' + self.product.portChoices[x].label,
 				size: '14',
@@ -133,13 +134,13 @@ export function setPresets(self) {
 	// Select by group and port preset
 	presets.push({
 		type: 'button',
-		category: 'Select camera by group and port',
+		category: 'Select Camera by Group and Port',
 		name: 'Select camera by group and port',
 		style: {
 			text: 'Select\\nGroup +\\nPort',
 			size: '14',
 			color: colorWhite,
-			bgcolor: colorBlack,
+			bgcolor: colorPurple,
 		},
 		steps: [
 			{
@@ -163,7 +164,7 @@ export function setPresets(self) {
 		for (let x = 0; x < self.product.presetChoices.length; x++) {
 			presets.push({
 				type: 'button',
-				category: 'Preset memory',
+				category: 'Preset Memory (PMEM)',
 				name: 'Select preset memory',
 				style: {
 					text: 'Recall\\n' + self.product.presetChoices[x].label,
@@ -192,7 +193,7 @@ export function setPresets(self) {
 						},
 						style: {
 							color: colorWhite,
-							bgcolor: colorBlue,
+							bgcolor: colorGrey,
 						},
 					},
 				],
@@ -205,13 +206,13 @@ export function setPresets(self) {
 		for (let x = 0; x < self.product.tracingChoices.length; x++) {
 			presets.push({
 				type: 'button',
-				category: 'Tracing memory',
+				category: 'Tracing Memory (TMEM)',
 				name: self.product.tracingChoices[x].label,
 				style: {
 					text: 'Standby\\n' + self.product.tracingChoices[x].label,
 					size: '14',
 					color: colorWhite,
-					bgcolor: colorOrange,
+					bgcolor: colorBlack,
 				},
 				steps: [
 					{
@@ -235,7 +236,7 @@ export function setPresets(self) {
 						},
 						style: {
 							color: colorWhite,
-							bgcolor: colorBlue,
+							bgcolor: colorGrey,
 						},
 					},
 				],
@@ -244,13 +245,13 @@ export function setPresets(self) {
 
 		presets.push({
 			type: 'button',
-			category: 'Tracing memory',
+			category: 'Tracing Memory (TMEM)',
 			name: 'TMEM Play',
 			style: {
-				text: 'Play\\nTMEM',
-				size: '14',
+				text: 'TMEM ⏵',
+				size: '18',
 				color: colorWhite,
-				bgcolor: colorRed,
+				bgcolor: colorGreen,
 			},
 			steps: [
 				{
@@ -271,13 +272,13 @@ export function setPresets(self) {
 
 		presets.push({
 			type: 'button',
-			category: 'Tracing memory',
+			category: 'Tracing Memory (TMEM)',
 			name: 'TMEM Stop',
 			style: {
-				text: 'Stop\\nTMEM',
-				size: '14',
+				text: ' TMEM ⏹',
+				size: '18',
 				color: colorWhite,
-				bgcolor: colorGrey,
+				bgcolor: colorRed,
 			},
 			steps: [
 				{

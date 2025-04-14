@@ -16,6 +16,8 @@ export function setActions(self) {
 		],
 		callback: async (action) => {
 			await self.sendCommand(`XCN:01:${action.options.camera}`)
+			self.data.pmem = null
+			self.data.tmem = null
 		},
 	}
 
@@ -32,6 +34,8 @@ export function setActions(self) {
 		],
 		callback: async (action) => {
 			await self.sendCommand(`XGP:${action.options.group}`)
+			self.data.pmem = null
+			self.data.tmem = null
 		},
 	}
 
@@ -55,6 +59,8 @@ export function setActions(self) {
 		],
 		callback: async (action) => {
 			await self.sendCommand(`XCN:02:${action.options.group}:${action.options.port}`)
+			self.data.pmem = null
+			self.data.tmem = null
 		},
 	}
 
@@ -71,6 +77,8 @@ export function setActions(self) {
 		],
 		callback: async (action) => {
 			await self.sendCommand(`XPT:${action.options.port}`)
+			self.data.pmem = null
+			self.data.tmem = null
 		},
 	}
 
@@ -89,6 +97,7 @@ export function setActions(self) {
 			callback: async (action) => {
 				await self.sendCommand(`XPM:01:${action.options.preset}`)
 				self.data.pmem = action.options.preset
+				self.data.tmem = null
 			},
 		}
 	}
@@ -121,6 +130,7 @@ export function setActions(self) {
 				switch (action.options.opt) {
 					case '02': // Standby
 						await self.sendCommand(`XTM:${action.options.opt}:${action.options.trace}`)
+						self.data.pmem = action.options.trace
 						self.data.tmem = action.options.trace
 						break
 					case '01': // Play

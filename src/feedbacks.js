@@ -8,6 +8,7 @@ export function setFeedbacks(self) {
 	const colorOrange = combineRgb(255, 102, 0)
 	const colorGreen = combineRgb(0, 204, 0)
 	const colorBlue = combineRgb(0, 51, 204)
+	const colorGrey = combineRgb(51, 51, 51)
 
 	feedbacks.cameraSelected = {
 		type: 'boolean',
@@ -81,7 +82,7 @@ export function setFeedbacks(self) {
 		description: 'Indicates if the selected PMEM is currently active (last selected)',
 		defaultStyle: {
 			color: colorWhite,
-			bgcolor: colorBlue,
+			bgcolor: colorGrey,
 		},
 		options: [
 			{
@@ -103,7 +104,7 @@ export function setFeedbacks(self) {
 		description: 'Indicates if the selected TMEM is currently active (last selected)',
 		defaultStyle: {
 			color: colorWhite,
-			bgcolor: colorBlue,
+			bgcolor: colorGrey,
 		},
 		options: [
 			{
