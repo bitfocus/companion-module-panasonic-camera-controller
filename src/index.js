@@ -141,10 +141,12 @@ class PTZControllerInstance extends InstanceBase {
 
 		switch (response[0]) {
 			case 'XPT': // RP50 only
-				this.data.port = response[1]
+				this.data.port = parseInt(response[1], 10)
+				this.data.camera = (this.data.group - 1) * this.product.numberOfPorts + this.data.port
 				break
 			case 'XGP': // RP50 only
-				this.data.group = response[1]
+				this.data.group = parseInt(response[1], 10)
+				this.data.camera = (this.data.group - 1) * this.product.numberOfPorts + this.data.port
 				break
 			case 'XCN': // RP50 only
 			case 'XQC':
