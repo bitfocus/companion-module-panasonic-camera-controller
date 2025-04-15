@@ -1,7 +1,7 @@
 {
 	"id": "panasonic-camera-controller",
 	"name": "panasonic-camera-controller",
-	"shortname": "PTZ controller",
+	"shortname": "Remote Camera Controller",
 	"description": "Companion module for Panasonic AW-RP50, AW-RP60, AW-RP120 and AW-RP150",
 	"version": "2.1.0",
 	"license": "MIT",
@@ -15,6 +15,10 @@
 		{
 			"name": "Andreas H. Thomsen",
 			"email": "mc-hauge@hotmail.com"
+		},
+		{
+			"name": "premultiply",
+			"email": "4681172+premultiply@users.noreply.github.com"
 		}
 	],
 	"legacyIds": [],
