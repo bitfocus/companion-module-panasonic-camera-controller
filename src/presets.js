@@ -96,7 +96,7 @@ export function setPresets(self) {
 		presets.push({
 			type: 'button',
 			category: 'Select Port',
-			name: 'Select camera port',
+			name: 'Select camera port (in a group)',
 			style: {
 				text: 'Select\\n' + self.product.portChoices[x].label,
 				size: '14',
@@ -165,7 +165,7 @@ export function setPresets(self) {
 			presets.push({
 				type: 'button',
 				category: 'Preset Memory (PMEM)',
-				name: 'Select preset memory',
+				name: 'Recall preset memory',
 				style: {
 					text: 'Recall\\n' + self.product.presetChoices[x].label,
 					size: '14',
@@ -207,7 +207,7 @@ export function setPresets(self) {
 			presets.push({
 				type: 'button',
 				category: 'Tracing Memory (TMEM)',
-				name: self.product.tracingChoices[x].label,
+				name: self.product.tracingChoices[x].label + ' Standby',
 				style: {
 					text: 'Standby\\n' + self.product.tracingChoices[x].label,
 					size: '14',

@@ -94,8 +94,10 @@ class PTZControllerInstance extends InstanceBase {
 		} catch (error) {
 			switch (error.name) {
 				case 'TypeError':
-					// The RP controllers (execpting the RP50) do not respond to a command in any way.
-					// The TCP connection will be closed immediately once the first line of the HTTP request is received by the device.
+					// The RP controllers (execpting the RP50) do not respond to a command.
+					// The TCP connection will be closed immediately once the first line of the HTTP request is received by the device and the HTTP status line is sent.
+					// fetch and other libs are unable to handle this and in case of fetch it throws a 'TypeError'.
+					// This is a known issue and can be ignored.
 					break
 				case 'TimeoutError':
 					this.updateStatus(
