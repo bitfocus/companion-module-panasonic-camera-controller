@@ -8,7 +8,7 @@ import { setVariables, checkVariables } from './vars.js'
 import { ConfigFields } from './config.js'
 import Queue from 'queue-fifo'
 
-class PTZControllerInstance extends InstanceBase {
+class PanasonicCameraControllerInstance extends InstanceBase {
 	constructor(internal) {
 		super(internal)
 
@@ -25,6 +25,12 @@ class PTZControllerInstance extends InstanceBase {
 		}
 
 		this.config = config
+
+		// apply default values if not explicitly set in the configuration (yet)
+		this.config.polling = this.config.polling ?? true
+		this.config.polldelay = this.config.polldelay ?? 100
+		this.config.port = this.config.port ?? 80
+
 		this.product = initProduct(this.config.model)
 
 		this.init_variables()
@@ -97,7 +103,7 @@ class PTZControllerInstance extends InstanceBase {
 					// The RP controllers (execpting the RP50) do not respond to a command.
 					// The TCP connection will be closed immediately once the first line of the HTTP request is received by the device and the HTTP status line is sent.
 					// fetch and other libs are unable to handle this and in case of fetch it throws a 'TypeError'.
-					// This is a known issue and can be ignored.
+					// This is to be expected and is therefore ignored.
 					break
 				case 'TimeoutError':
 					this.updateStatus(
@@ -231,4 +237,4 @@ class PTZControllerInstance extends InstanceBase {
 	}
 }
 
-runEntrypoint(PTZControllerInstance, UpgradeScripts)
+runEntrypoint(PanasonicCameraControllerInstance, UpgradeScripts)

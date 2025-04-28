@@ -13,10 +13,8 @@ export const ConfigFields = [
 		type: 'static-text',
 		id: 'info',
 		width: 12,
-		label: 'Controller information',
-		value:
-			'Panasonic PTZ remote camera controller information.<br /> ' +
-			'Please select your controller model, and fill its IP address and its HTTP port in the corresponding fields',
+		label: 'Controller connection setup',
+		value: 'Please select your controller model, and fill its IP address and its HTTP port in the corresponding fields',
 	},
 	{
 		type: 'dropdown',
@@ -55,9 +53,8 @@ export const ConfigFields = [
 		width: 12,
 		label: 'API poll settings',
 		value:
-			'Adjusting the API Polling Interval can impact performance. <br />' +
-			'A lower delay allows for more responsive feedback, but may impact CPU usage. <br />' +
-			'The controller is not designed to process simultaneous or consecutive requests. To ensure efficient use, all commands are buffered and transmitted one after the other with a sufficient time gap.',
+			'The controller is not designed to process simultaneous or consecutive requests. To ensure efficient use, all commands are buffered and transmitted one after the other with a sufficient time gap.<br />' +
+			'A lower delay allows for more responsive feedback, but may impact CPU usage.',
 	},
 	{
 		type: 'checkbox',
@@ -72,7 +69,7 @@ export const ConfigFields = [
 		width: 7,
 		label: 'Polling',
 		value:
-			'Enables periodic updates of the device status. This must be activated in order for feedbacks and variables to reflect the current device status. The delay setting specifies the gap between the requests to the device.',
+			'Enables periodic updates of the device status (default: on). This must be activated in order for feedbacks and variables to reflect the current device status. The delay setting specifies the gap between the requests to the device. (default: 100ms)',
 	},
 	{
 		type: 'number',
