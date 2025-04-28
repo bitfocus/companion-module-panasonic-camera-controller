@@ -9,14 +9,6 @@
 	"bugs": "https://github.com/bitfocus/companion-module-panasonic-camera-controller/issues",
 	"maintainers": [
 		{
-			"name": "Scott Mayberry",
-			"email": "s3tm6y@gmail.com"
-		},
-		{
-			"name": "Andreas H. Thomsen",
-			"email": "mc-hauge@hotmail.com"
-		},
-		{
 			"name": "premultiply",
 			"email": "4681172+premultiply@users.noreply.github.com"
 		}
