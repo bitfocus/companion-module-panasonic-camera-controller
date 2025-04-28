@@ -1,129 +1,149 @@
-import { CAMERA_LABEL, GROUP_LABEL, PORT_LABEL } from "./common.js"
+import { CAMERA_LABEL, GROUP_LABEL, PORT_LABEL } from './common.js'
 
-export function initActions(self) {
-    var actions = {}
+export function setActions(self) {
+	const actions = {}
 
-    actions.selectCamera = {
-        name: 'Select Camera',
-        options: [
-            {
-                type: 'dropdown',
-                label: CAMERA_LABEL,
-                id: 'camera',
-                default: '1',
-                choices: self.product.cameraChoices,
-            },
-        ],
-        callback: async (event) => {
-            await self.api.sendCommand(`XCN:01:${event.options.camera}`).then()
-        },
-    }
+	actions.selectCamera = {
+		name: 'Select Camera',
+		options: [
+			{
+				type: 'dropdown',
+				label: CAMERA_LABEL,
+				id: 'camera',
+				default: self.product.cameraChoices[0].id,
+				choices: self.product.cameraChoices,
+			},
+		],
+		callback: async (action) => {
+			await self.sendCommand(`XCN:01:${action.options.camera}`)
+			self.data.pmem = null
+			self.data.tmem = null
+		},
+	}
 
-    actions.selectGroup = {
-        name: 'Select Group',
-        options: [
-            {
-                type: 'dropdown',
-                label: 'Group',
-                id: 'group',
-                default: '1',
-                choices: self.product.groupChoices,
-            },
-        ],
-        callback: async (event) => {
-            await self.api.sendCommand(`XGP:${event.options.group}`).then()
-        },
-    }
+	actions.selectGroup = {
+		name: 'Select Group',
+		options: [
+			{
+				type: 'dropdown',
+				label: GROUP_LABEL,
+				id: 'group',
+				default: self.product.groupChoices[0].id,
+				choices: self.product.groupChoices,
+			},
+		],
+		callback: async (action) => {
+			await self.sendCommand(`XGP:${action.options.group}`)
+			self.data.pmem = null
+			self.data.tmem = null
+		},
+	}
 
-    actions.selectGroupPort = {
-        name: 'Select Group + Port',
-        options: [
-            {
-                type: 'dropdown',
-                label: GROUP_LABEL,
-                id: 'group',
-                default: '1',
-                choices: self.product.groupChoices,
-            },
-            {
-                type: 'dropdown',
-                label: PORT_LABEL,
-                id: 'port',
-                default: '1',
-                choices: self.product.portChoices,
-            },
-        ],
-        callback: async (event) => {
-            await self.api.sendCommand(`XCN:02:${event.options.group}:${event.options.port}`).then()
-        },
-    }
+	actions.selectGroupPort = {
+		name: 'Select Group + Port',
+		options: [
+			{
+				type: 'dropdown',
+				label: GROUP_LABEL,
+				id: 'group',
+				default: self.product.groupChoices[0].id,
+				choices: self.product.groupChoices,
+			},
+			{
+				type: 'dropdown',
+				label: PORT_LABEL,
+				id: 'port',
+				default: self.product.portChoices[0].id,
+				choices: self.product.portChoices,
+			},
+		],
+		callback: async (action) => {
+			await self.sendCommand(`XCN:02:${action.options.group}:${action.options.port}`)
+			self.data.pmem = null
+			self.data.tmem = null
+		},
+	}
 
-    actions.selectPort = {
-        name: 'Select Port',
-        options: [
-            {
-                type: 'dropdown',
-                label: PORT_LABEL,
-                id: 'port',
-                default: '1',
-                choices: self.product.portChoices,
-            },
-        ],
-        callback: async (event) => {
-            await self.api.sendCommand(`XPT:${event.options.port}`).then()
-        },
-    }
+	actions.selectPort = {
+		name: 'Select Port',
+		options: [
+			{
+				type: 'dropdown',
+				label: PORT_LABEL,
+				id: 'port',
+				default: self.product.portChoices[0].id,
+				choices: self.product.portChoices,
+			},
+		],
+		callback: async (action) => {
+			await self.sendCommand(`XPT:${action.options.port}`)
+			self.data.pmem = null
+			self.data.tmem = null
+		},
+	}
 
-    if (self.product.presetMemory == true) {
-        actions.presetMemory = {
-            name: 'Select Preset Memory',
-            options: [
-                {
-                    type: 'dropdown',
-                    label: 'Select Preset',
-                    id: 'preset',
-                    default: '001',
-                    choices: self.product.presetChoices,
-                },
-            ],
-            callback: async (event) => {
-                await self.api.sendCommand(`XPM:01:${event.options.preset}`).then()
-            },
-        }
-    }
+	if (self.product.presetMemory == true) {
+		actions.presetMemory = {
+			name: 'Recall Preset Memory (PMEM)',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Memory',
+					id: 'preset',
+					default: self.product.presetChoices[0].id,
+					choices: self.product.presetChoices,
+				},
+			],
+			callback: async (action) => {
+				await self.sendCommand(`XPM:01:${action.options.preset}`)
+				self.data.pmem = action.options.preset
+				self.data.tmem = null
+			},
+		}
+	}
 
-    if (self.product.tracingMemory == true) {
-        actions.tracingMemory = {
-            name: 'Select Tracing Memory',
-            options: [
-                {
-                    type: 'dropdown',
-                    label: 'Option',
-                    id: 'opt',
-                    default: 'Standby',
-                    default: '02',
-                    choices: [
-                        { id: '02', label: 'Standby' },
-                        { id: '01', label: 'Play' },
-                        { id: '00', label: 'Stop' },
-                    ],
-                },
-                {
-                    type: 'dropdown',
-                    label: 'Select Trace',
-                    id: 'trace',
-                    choices: self.product.tracingChoices,
-                },
-            ],
-            callback: async (event) => {
-                var trace = event.options.trace
-                if (event.options.opt == '01') {
-                    trace = '000'
-                }
-                await self.api.sendCommand(`XPM:${event.options.opt}:${trace}`).then()
-            },
-        }
-    }
+	if (self.product.tracingMemory == true) {
+		actions.tracingMemory = {
+			name: 'Recall Tracing Memory (TMEM)',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Operation',
+					id: 'opt',
+					default: '02',
+					choices: [
+						{ id: '02', label: 'Standby' },
+						{ id: '01', label: 'Play' },
+						{ id: '00', label: 'Stop' },
+					],
+				},
+				{
+					type: 'dropdown',
+					label: 'Memory',
+					id: 'trace',
+					default: self.product.tracingChoices[0].id,
+					choices: self.product.tracingChoices,
+					isVisible: (options) => options.opt === '02',
+				},
+			],
+			callback: async (action) => {
+				switch (action.options.opt) {
+					case '02': // Standby
+						await self.sendCommand(`XTM:${action.options.opt}:${action.options.trace}`)
+						self.data.pmem = action.options.trace
+						self.data.tmem = action.options.trace
+						break
+					case '01': // Play
+						await self.sendCommand(`XTM:${action.options.opt}:000`)
+						break
+					case '00': // Stop
+						const tmem = self.data.tmem ? String(self.data.tmem).padStart(3, '0') : '001'
+						await self.sendCommand(`XTM:${action.options.opt}:${tmem}`)
+						break
+				}
+			},
+		}
+	}
 
-    self.setActionDefinitions(actions)
+	return actions
 }
