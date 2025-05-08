@@ -82,7 +82,7 @@ export function setActions(self) {
 		},
 	}
 
-	if (self.product.presetMemory == true) {
+	if (self.product.presetMemory) {
 		actions.presetMemory = {
 			name: 'Recall Preset Memory (PMEM)',
 			options: [
@@ -102,7 +102,7 @@ export function setActions(self) {
 		}
 	}
 
-	if (self.product.tracingMemory == true) {
+	if (self.product.tracingMemory) {
 		actions.tracingMemory = {
 			name: 'Recall Tracing Memory (TMEM)',
 			options: [

@@ -1,13 +1,11 @@
 export function setVariables(self) {
-	const variables = [
+	return [
 		{ variableId: 'camera', name: 'Selected Camera' },
 		{ variableId: 'group', name: 'Selected Group' },
 		{ variableId: 'port', name: 'Selected Port' },
 		{ variableId: 'pmem', name: 'Last selected Preset Memory' },
 		{ variableId: 'tmem', name: 'Last selected Tracing Memory' },
 	]
-
-	return variables
 }
 export function checkVariables(self) {
 	self.setVariableValues({

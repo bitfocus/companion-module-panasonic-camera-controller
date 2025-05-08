@@ -1,7 +1,7 @@
 import { combineRgb } from '@companion-module/base'
 
 export function setPresets(self) {
-	var presets = []
+	const presets = []
 
 	const colorWhite = combineRgb(255, 255, 255)
 	const colorRed = combineRgb(255, 0, 0)
@@ -12,7 +12,7 @@ export function setPresets(self) {
 	const colorPurple = combineRgb(255, 0, 255)
 	const colorBlack = combineRgb(0, 0, 0)
 
-	for (var x = 0; x < self.product.cameraChoices.length; x++) {
+	for (let x = 0; x < self.product.cameraChoices.length; x++) {
 		presets.push({
 			type: 'button',
 			category: 'Select Camera',
@@ -160,7 +160,7 @@ export function setPresets(self) {
 	})
 
 	// Generate preset memory presets
-	if (self.product.presetMemory == true) {
+	if (self.product.presetMemory) {
 		for (let x = 0; x < self.product.presetChoices.length; x++) {
 			presets.push({
 				type: 'button',
@@ -202,7 +202,7 @@ export function setPresets(self) {
 	}
 
 	// Generate tracing presets
-	if (self.product.tracingMemory == true) {
+	if (self.product.tracingMemory) {
 		for (let x = 0; x < self.product.tracingChoices.length; x++) {
 			presets.push({
 				type: 'button',

@@ -123,10 +123,8 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 			this.checkVariables()
 			this.checkFeedbacks()
 
-			if (!this.controller.signal.aborted) {
-				if (this.config.polling || !this.queue.isEmpty()) {
-					this.pollID = setTimeout(() => this.pullData(), this.config.polldelay)
-				}
+			if (!this.controller.signal.aborted && (this.config.polling || !this.queue.isEmpty())) {
+				this.pollID = setTimeout(() => this.pullData(), this.config.polldelay)
 			}
 		}
 	}
@@ -136,8 +134,9 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 		this.log('debug', 'GET ' + url)
 
 		const response = await fetch(url, options)
-		if (!response.ok || !response.status == 200)
+		if (!response.ok || response.status !== 200) {
 			throw new Error(`HTTP error: ${response.status} ${response.statusText}`)
+		}
 		this.parseData(await response.text())
 	}
 

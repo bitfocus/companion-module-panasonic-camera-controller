@@ -39,7 +39,7 @@ export const PRODUCTS = {
 }
 
 export function generateChoices(label, numberOfChoices) {
-	var choice = 1
+	let choice = 1
 
 	if (label == PRESET_LABEL || label == TRACING_LABEL) {
 		return Array.from({ length: numberOfChoices }, () => ({
