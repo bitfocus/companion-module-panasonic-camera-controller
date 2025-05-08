@@ -76,49 +76,53 @@ export function setFeedbacks(self) {
 		},
 	}
 
-	feedbacks.presetSelected = {
-		type: 'boolean',
-		name: 'Preset Memory selected',
-		description: 'Indicates if the selected PMEM is currently active (last selected)',
-		defaultStyle: {
-			color: colorWhite,
-			bgcolor: colorGrey,
-		},
-		options: [
-			{
-				type: 'dropdown',
-				label: 'Memory',
-				id: 'pmem',
-				default: self.product.presetChoices[0].id,
-				choices: self.product.presetChoices,
+	if (self.product.presetMemory) {
+		feedbacks.presetSelected = {
+			type: 'boolean',
+			name: 'Preset Memory selected',
+			description: 'Indicates if the selected PMEM is currently active (last selected)',
+			defaultStyle: {
+				color: colorWhite,
+				bgcolor: colorGrey,
 			},
-		],
-		callback: function (feedback) {
-			return self.data.pmem === feedback.options.pmem
-		},
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Memory',
+					id: 'pmem',
+					default: self.product.presetChoices[0].id,
+					choices: self.product.presetChoices,
+				},
+			],
+			callback: function (feedback) {
+				return self.data.pmem === feedback.options.pmem
+			},
+		}
 	}
 
-	feedbacks.traceSelected = {
-		type: 'boolean',
-		name: 'Tracing Memory selected',
-		description: 'Indicates if the selected TMEM is currently active (last selected)',
-		defaultStyle: {
-			color: colorWhite,
-			bgcolor: colorGrey,
-		},
-		options: [
-			{
-				type: 'dropdown',
-				label: 'Memory',
-				id: 'tmem',
-				default: self.product.tracingChoices[0].id,
-				choices: self.product.tracingChoices,
+	if (self.product.tracingMemory) {
+		feedbacks.traceSelected = {
+			type: 'boolean',
+			name: 'Tracing Memory selected',
+			description: 'Indicates if the selected TMEM is currently active (last selected)',
+			defaultStyle: {
+				color: colorWhite,
+				bgcolor: colorGrey,
 			},
-		],
-		callback: function (feedback) {
-			return self.data.tmem === feedback.options.tmem
-		},
-	}
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Memory',
+					id: 'tmem',
+					default: self.product.tracingChoices[0].id,
+					choices: self.product.tracingChoices,
+				},
+			],
+			callback: function (feedback) {
+				return self.data.tmem === feedback.options.tmem
+			},
+		}
 
-	return feedbacks
+		return feedbacks
+	}
 }
