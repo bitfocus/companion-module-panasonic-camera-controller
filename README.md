@@ -41,3 +41,7 @@ See HELP.md and LICENSE
 
 - Rewrite of the connection handler
 - Upgraded depencies and dev environment
+
+**V2.1.1**
+
+- Fixed bugs in feedback init procedure and config validation

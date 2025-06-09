@@ -95,7 +95,7 @@ export function setFeedbacks(self) {
 				},
 			],
 			callback: function (feedback) {
-				return self.data.pmem === feedback.options.pmem
+				return feedback.options.pmem == self.data.pmem
 			},
 		}
 	}
@@ -119,10 +119,10 @@ export function setFeedbacks(self) {
 				},
 			],
 			callback: function (feedback) {
-				return self.data.tmem === feedback.options.tmem
+				return feedback.options.tmem == self.data.tmem
 			},
 		}
-
-		return feedbacks
 	}
+
+	return feedbacks
 }

@@ -27,6 +27,8 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 		this.config = config
 
 		// apply default values if not explicitly set in the configuration (yet)
+		this.config.host = this.config.host ?? '127.0.0.1'
+		this.config.model = this.config.model ?? 'AW-RP50'
 		this.config.polling = this.config.polling ?? true
 		this.config.polldelay = this.config.polldelay ?? 100
 		this.config.port = this.config.port ?? 80
