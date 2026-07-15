@@ -109,11 +109,9 @@ export function setActions(self) {
 					case '01': // Play
 						await self.sendCommand(`XTM:${action.options.opt}:000`)
 						break
-					case '00': {
-						// Stop
+					case '00': // Stop
 						await self.sendCommand(`XTM:${action.options.opt}:${pad3(self.data.tmem || 1)}`)
 						break
-					}
 				}
 			},
 		}
