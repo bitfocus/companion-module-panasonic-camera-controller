@@ -1,99 +1,60 @@
 import { CAMERA_LABEL, GROUP_LABEL, PORT_LABEL } from './common.js'
 
+function dropdown(label, id, choices) {
+	return { type: 'dropdown', label, id, default: choices[0].id, choices }
+}
+
+function resetMem(self) {
+	self.data.pmem = null
+	self.data.tmem = null
+}
+
 export function setActions(self) {
 	const actions = {}
 
 	actions.selectCamera = {
 		name: 'Select Camera',
-		options: [
-			{
-				type: 'dropdown',
-				label: CAMERA_LABEL,
-				id: 'camera',
-				default: self.product.cameraChoices[0].id,
-				choices: self.product.cameraChoices,
-			},
-		],
+		options: [dropdown(CAMERA_LABEL, 'camera', self.product.cameraChoices)],
 		callback: async (action) => {
 			await self.sendCommand(`XCN:01:${action.options.camera}`)
-			self.data.pmem = null
-			self.data.tmem = null
+			resetMem(self)
 		},
 	}
 
 	actions.selectGroup = {
 		name: 'Select Group',
-		options: [
-			{
-				type: 'dropdown',
-				label: GROUP_LABEL,
-				id: 'group',
-				default: self.product.groupChoices[0].id,
-				choices: self.product.groupChoices,
-			},
-		],
+		options: [dropdown(GROUP_LABEL, 'group', self.product.groupChoices)],
 		callback: async (action) => {
 			await self.sendCommand(`XGP:${action.options.group}`)
-			self.data.pmem = null
-			self.data.tmem = null
+			resetMem(self)
 		},
 	}
 
 	actions.selectGroupPort = {
 		name: 'Select Group + Port',
 		options: [
-			{
-				type: 'dropdown',
-				label: GROUP_LABEL,
-				id: 'group',
-				default: self.product.groupChoices[0].id,
-				choices: self.product.groupChoices,
-			},
-			{
-				type: 'dropdown',
-				label: PORT_LABEL,
-				id: 'port',
-				default: self.product.portChoices[0].id,
-				choices: self.product.portChoices,
-			},
+			dropdown(GROUP_LABEL, 'group', self.product.groupChoices),
+			dropdown(PORT_LABEL, 'port', self.product.portChoices),
 		],
 		callback: async (action) => {
 			await self.sendCommand(`XCN:02:${action.options.group}:${action.options.port}`)
-			self.data.pmem = null
-			self.data.tmem = null
+			resetMem(self)
 		},
 	}
 
 	actions.selectPort = {
 		name: 'Select Port',
-		options: [
-			{
-				type: 'dropdown',
-				label: PORT_LABEL,
-				id: 'port',
-				default: self.product.portChoices[0].id,
-				choices: self.product.portChoices,
-			},
-		],
+		options: [dropdown(PORT_LABEL, 'port', self.product.portChoices)],
 		callback: async (action) => {
 			await self.sendCommand(`XPT:${action.options.port}`)
-			self.data.pmem = null
-			self.data.tmem = null
+			resetMem(self)
 		},
 	}
 
 	if (self.product.presetMemory) {
 		actions.presetMemory = {
 			name: 'Recall Preset Memory (PMEM)',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Memory',
-					id: 'preset',
-					default: self.product.presetChoices[0].id,
-					choices: self.product.presetChoices,
-				},
-			],
+			options: [dropdown('Memory', 'preset', self.product.presetChoices)],
 			callback: async (action) => {
 				await self.sendCommand(`XPM:01:${action.options.preset}`)
 				self.data.pmem = parseInt(action.options.preset, 10)
@@ -118,11 +79,7 @@ export function setActions(self) {
 					],
 				},
 				{
-					type: 'dropdown',
-					label: 'Memory',
-					id: 'trace',
-					default: self.product.tracingChoices[0].id,
-					choices: self.product.tracingChoices,
+					...dropdown('Memory', 'trace', self.product.tracingChoices),
 					isVisible: (options) => options.opt === '02',
 				},
 			],
