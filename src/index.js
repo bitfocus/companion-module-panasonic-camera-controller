@@ -1,4 +1,4 @@
-import { InstanceBase, InstanceStatus, runEntrypoint } from '@companion-module/base'
+import { InstanceBase, InstanceStatus } from '@companion-module/base'
 import { setActions } from './actions.js'
 import { setFeedbacks } from './feedbacks.js'
 import { initProduct } from './models.js'
@@ -112,6 +112,7 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 						InstanceStatus.ConnectionFailure,
 						'Timeout - Check configuration and connection to the controller',
 					)
+				// falls through — also clear the queue like AbortError
 				case 'AbortError':
 					this.queue.clear()
 					break
@@ -222,7 +223,7 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 	// #### Instance Variables ####
 	// ############################
 	init_variables() {
-		this.setVariableDefinitions(setVariables(this))
+		this.setVariableDefinitions(setVariables())
 	}
 
 	// Update Values
@@ -238,4 +239,5 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 	}
 }
 
-runEntrypoint(PanasonicCameraControllerInstance, UpgradeScripts)
+export default PanasonicCameraControllerInstance
+export { UpgradeScripts }

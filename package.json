@@ -14,15 +14,19 @@
 		"url": "git+https://github.com/bitfocus/companion-module-panasonic-camera-controller.git"
 	},
 	"license": "MIT",
+	"engines": {
+		"node": "^22.20",
+		"yarn": "^4"
+	},
 	"dependencies": {
-		"@companion-module/base": "~1.11.2",
+		"@companion-module/base": "~2.1.2",
 		"queue-fifo": "^0.2.6"
 	},
 	"devDependencies": {
-		"@companion-module/tools": "^2.6.1",
-		"eslint": "^9.24.0",
-		"prettier": "^3.5.3"
+		"@companion-module/tools": "^3.0.1",
+		"eslint": "^10.2.0",
+		"prettier": "^3.8.3"
 	},
 	"prettier": "@companion-module/tools/.prettierrc.json",
-	"packageManager": "yarn@4.13.0"
+	"packageManager": "yarn@4.17.0"
 }

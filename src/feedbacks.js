@@ -7,7 +7,6 @@ export function setFeedbacks(self) {
 	const colorWhite = combineRgb(255, 255, 255)
 	const colorOrange = combineRgb(255, 102, 0)
 	const colorGreen = combineRgb(0, 204, 0)
-	const colorBlue = combineRgb(0, 51, 204)
 	const colorGrey = combineRgb(51, 51, 51)
 
 	feedbacks.cameraSelected = {

@@ -1,4 +1,5 @@
 {
+	"type": "connection",
 	"id": "panasonic-camera-controller",
 	"name": "panasonic-camera-controller",
 	"shortname": "Remote Camera Controller",
@@ -21,18 +22,6 @@
 		"entrypoint": "../src/index.js"
 	},
 	"manufacturer": "Panasonic",
-	"products": [
-		"Remote Camera Controller"
-	],
-	"keywords": [
-		"Panasonic",
-		"PTZ",
-		"Remote",
-		"Camera",
-		"Controller",
-		"AW-RP50",
-		"AW-RP60",
-		"AW-RP120",
-		"AW-RP150"
-	]
+	"products": ["Remote Camera Controller"],
+	"keywords": ["Panasonic", "PTZ", "Remote", "Camera", "Controller", "AW-RP50", "AW-RP60", "AW-RP120", "AW-RP150"]
 }
