@@ -7,6 +7,51 @@ import UpgradeScripts from './upgrades.js'
 import { setVariables, checkVariables } from './vars.js'
 import { ConfigFields } from './config.js'
 
+// fetch (undici) reports every network-layer failure as `error.name === 'TypeError'`;
+// only `error.cause.code` reveals what actually happened. These codes mean the request
+// never reached the controller (wrong address, offline, no route, connect timeout).
+const UNREACHABLE_CODES = new Set([
+	'ECONNREFUSED',
+	'ENOTFOUND',
+	'EAI_AGAIN',
+	'EHOSTUNREACH',
+	'ENETUNREACH',
+	'ETIMEDOUT',
+	'UND_ERR_CONNECT_TIMEOUT',
+])
+
+// Retry interval while the controller is unreachable, instead of hammering it every polldelay.
+const RECONNECT_DELAY = 5000
+
+// Map a failed poll to a connection status, or null when we aborted the request
+// ourselves (destroy/configUpdated) and the status is owned elsewhere.
+export function pollErrorToStatus(error) {
+	if (error.name === 'AbortError') return null
+	if (error.name === 'TimeoutError') {
+		return { status: InstanceStatus.ConnectionFailure, message: 'Timeout — check connection to the controller' }
+	}
+	if (error.name === 'TypeError') {
+		const code = error.cause?.code ?? error.cause?.errors?.[0]?.code
+		if (UNREACHABLE_CODES.has(code)) {
+			return {
+				status: InstanceStatus.ConnectionFailure,
+				message: `Cannot reach controller (${code}) — check IP address, port and network`,
+			}
+		}
+		// Reached the device but it closed the connection after a partial response. This is the
+		// expected behaviour of the RP60/RP120/RP150, which never reply to commands — so the
+		// connection is alive. Bias towards "reached" unless we have a definite unreachable code.
+		return { status: InstanceStatus.Ok }
+	}
+	if (error.httpStatus === 401 || error.httpStatus === 403) {
+		return { status: InstanceStatus.AuthenticationFailure, message: 'Controller rejected the request' }
+	}
+	if (error.httpStatus) {
+		return { status: InstanceStatus.ConnectionFailure, message: error.message }
+	}
+	return { status: InstanceStatus.UnknownError, message: String(error) }
+}
+
 class PanasonicCameraControllerInstance extends InstanceBase {
 	constructor(internal) {
 		super(internal)
@@ -27,7 +72,6 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 		this.config = config
 
 		// apply default values if not explicitly set in the configuration (yet)
-		this.config.host = this.config.host ?? '127.0.0.1'
 		this.config.model = this.config.model ?? 'AW-RP50'
 		this.config.polling = this.config.polling ?? true
 		this.config.polldelay = this.config.polldelay ?? 100
@@ -46,6 +90,11 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 
 		this.controller = new AbortController()
 		this.pollActive = false
+
+		if (!this.config.host) {
+			this.updateStatus(InstanceStatus.BadConfig, 'No controller IP address / hostname configured')
+			return
+		}
 
 		this.updateStatus(InstanceStatus.Connecting)
 
@@ -95,43 +144,40 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 			signal: AbortSignal.any([t, controller.signal]),
 		}
 
+		let retryDelay = this.config.polldelay
 		const start = Date.now()
 		try {
 			await this.getAPI(queue.shift(), options)
 
 			this.updateStatus(InstanceStatus.Ok)
 		} catch (error) {
-			switch (error.name) {
-				case 'TypeError':
-					// The RP controllers (execpting the RP50) do not respond to a command.
-					// The TCP connection will be closed immediately once the first line of the HTTP request is received by the device and the HTTP status line is sent.
-					// fetch and other libs are unable to handle this and in case of fetch it throws a 'TypeError'.
-					// This is to be expected and is therefore ignored.
-					break
-				case 'TimeoutError':
-					this.updateStatus(
-						InstanceStatus.ConnectionFailure,
-						'Timeout - Check configuration and connection to the controller',
-					)
-				// falls through — also clear the queue like AbortError
-				case 'AbortError':
-					queue.length = 0
-					break
-				default:
-					this.log('error', String(error))
+			const result = pollErrorToStatus(error)
+			if (result) {
+				this.updateStatus(result.status, result.message)
+			}
+
+			// Discard pending commands on any failure except the "reached / Ok" case,
+			// where the command was already delivered to the device.
+			if (!result || result.status !== InstanceStatus.Ok) {
+				queue.length = 0
+			}
+
+			// Back off instead of hammering an unreachable controller every polldelay.
+			if (result?.status === InstanceStatus.ConnectionFailure) {
+				retryDelay = RECONNECT_DELAY
 			}
 		} finally {
 			const dt = Date.now() - start
 			this.log('debug', `...returned after ${dt}ms. ${String(queue.length)} commands left in queue.`)
 
-			this.checkVariables()
-			this.checkFeedbacks()
+			// A superseded (configUpdated) or aborted (destroy) generation must not push
+			// updates or reschedule; the current generation owns pollID/pollActive.
+			if (controller === this.controller && !controller.signal.aborted) {
+				this.checkVariables()
+				this.checkFeedbacks()
 
-			// Skip if this loop was superseded by a newer generation (configUpdated);
-			// the new loop owns pollID/pollActive.
-			if (controller === this.controller) {
-				if (!controller.signal.aborted && (this.config.polling || queue.length > 0)) {
-					this.pollID = setTimeout(() => this.pullData(), this.config.polldelay)
+				if (this.config.polling || queue.length > 0) {
+					this.pollID = setTimeout(() => this.pullData(), retryDelay)
 				} else {
 					this.pollActive = false
 				}
@@ -145,7 +191,9 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 
 		const response = await fetch(url, options)
 		if (!response.ok || response.status !== 200) {
-			throw new Error(`HTTP error: ${response.status} ${response.statusText}`)
+			const err = new Error(`HTTP error: ${response.status} ${response.statusText}`)
+			err.httpStatus = response.status
+			throw err
 		}
 		this.parseData(await response.text())
 	}
