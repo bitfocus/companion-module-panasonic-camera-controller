@@ -71,12 +71,8 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 
 		this.config = config
 
-		// apply default values if not explicitly set in the configuration (yet)
-		this.config.model = this.config.model ?? 'AW-RP50'
-		this.config.polling = this.config.polling ?? true
-		this.config.polldelay = this.config.polldelay ?? 100
-		this.config.port = this.config.port ?? 80
-
+		// Field defaults (see config.js) are applied by the host on first init; no need to
+		// re-apply them here. initProduct() falls back to the default model if unset.
 		this.product = initProduct(this.config.model)
 
 		this.init_variables()

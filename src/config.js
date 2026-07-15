@@ -38,6 +38,7 @@ export const ConfigFields = [
 		default: 80,
 		min: 1,
 		max: 65535,
+		asInteger: true,
 	},
 	{
 		type: 'static-text',
@@ -78,6 +79,7 @@ export const ConfigFields = [
 		default: 100,
 		min: 25,
 		max: 2500,
+		asInteger: true,
 	},
 	{
 		type: 'static-text',
