@@ -13,6 +13,7 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 		super(internal)
 
 		this.pollID = null
+		this.pollActive = false
 	}
 
 	async init(config) {
@@ -45,6 +46,7 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 		this.queue = new Queue()
 
 		this.controller = new AbortController()
+		this.pollActive = false
 
 		this.updateStatus(InstanceStatus.Connecting)
 
@@ -73,17 +75,25 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 
 		this.queue.enqueue(cmd)
 
-		if (!this.controller.signal.aborted && !this.config.polling) {
+		// With polling disabled, drive a poll loop to fetch the updated state.
+		// Only start one if none is already draining the queue, to avoid overlapping loops.
+		if (!this.controller.signal.aborted && !this.config.polling && !this.pollActive) {
 			this.queue.enqueue('XQC:01')
-			await this.pullData()
+			this.pullData()
 		}
 	}
 
 	async pullData() {
 		this.log('debug', 'pullData()')
 
-		if (this.queue.isEmpty()) {
-			this.queue.enqueue('XQC:01')
+		// Capture the current controller/queue so a superseded loop (after configUpdated
+		// replaced them) keeps operating on its own generation, not the new one.
+		const controller = this.controller
+		const queue = this.queue
+		this.pollActive = true
+
+		if (queue.isEmpty()) {
+			queue.enqueue('XQC:01')
 		}
 
 		const t = AbortSignal.timeout(5000)
@@ -91,12 +101,12 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 		const options = {
 			mode: 'no-cors',
 			headers: { Connection: 'close' },
-			signal: AbortSignal.any([t, this.controller.signal]),
+			signal: AbortSignal.any([t, controller.signal]),
 		}
 
 		const start = Date.now()
 		try {
-			await this.getAPI(this.queue.dequeue(), options)
+			await this.getAPI(queue.dequeue(), options)
 
 			this.updateStatus(InstanceStatus.Ok)
 		} catch (error) {
@@ -114,20 +124,26 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 					)
 				// falls through — also clear the queue like AbortError
 				case 'AbortError':
-					this.queue.clear()
+					queue.clear()
 					break
 				default:
 					this.log('error', String(error))
 			}
 		} finally {
 			const dt = Date.now() - start
-			this.log('debug', `...returned after ${dt}ms. ${String(this.queue.size())} commands left in queue.`)
+			this.log('debug', `...returned after ${dt}ms. ${String(queue.size())} commands left in queue.`)
 
 			this.checkVariables()
 			this.checkFeedbacks()
 
-			if (!this.controller.signal.aborted && (this.config.polling || !this.queue.isEmpty())) {
-				this.pollID = setTimeout(() => this.pullData(), this.config.polldelay)
+			// Skip if this loop was superseded by a newer generation (configUpdated);
+			// the new loop owns pollID/pollActive.
+			if (controller === this.controller) {
+				if (!controller.signal.aborted && (this.config.polling || !queue.isEmpty())) {
+					this.pollID = setTimeout(() => this.pullData(), this.config.polldelay)
+				} else {
+					this.pollActive = false
+				}
 			}
 		}
 	}
