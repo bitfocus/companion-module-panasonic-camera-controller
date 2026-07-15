@@ -49,9 +49,7 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 
 		this.updateStatus(InstanceStatus.Connecting)
 
-		if (this.pollID === null) {
-			this.pullData()
-		}
+		this.pullData()
 	}
 
 	async destroy() {
@@ -70,8 +68,6 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 	}
 
 	async sendCommand(cmd) {
-		this.log('debug', 'sendCommand()')
-
 		this.queue.push(cmd)
 
 		// With polling disabled, drive a poll loop to fetch the updated state.
@@ -83,8 +79,6 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 	}
 
 	async pullData() {
-		this.log('debug', 'pullData()')
-
 		// Capture the current controller/queue so a superseded loop (after configUpdated
 		// replaced them) keeps operating on its own generation, not the new one.
 		const controller = this.controller
@@ -98,8 +92,6 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 		const t = AbortSignal.timeout(5000)
 
 		const options = {
-			mode: 'no-cors',
-			headers: { Connection: 'close' },
 			signal: AbortSignal.any([t, controller.signal]),
 		}
 
@@ -178,7 +170,7 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 				switch (response[1]) {
 					case '01': // Camera number
 						this.data.camera = parseInt(response[2], 10)
-						this.data.group = ~~((this.data.camera - 1) / this.product.numberOfPorts) + 1
+						this.data.group = Math.floor((this.data.camera - 1) / this.product.numberOfPorts) + 1
 						this.data.port = ((this.data.camera - 1) % this.product.numberOfPorts) + 1
 						break
 					case '02': // Camera Group/Port
