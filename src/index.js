@@ -23,6 +23,17 @@ const UNREACHABLE_CODES = new Set([
 // Retry interval while the controller is unreachable, instead of hammering it every polldelay.
 const RECONNECT_DELAY = 5000
 
+// A momentarily-busy controller (e.g. group switching) is retried quickly, up to a bound.
+const BUSY_RETRY_DELAY = 250
+const MAX_BUSY_RETRIES = 10
+
+// Wrap a device-level protocol error so the poll loop can react to it (retry a busy
+// controller, drop a rejected command) without treating it as a connection failure.
+// kind: 'busy' (RP50 HTTP 500 / RP120+ 'ER2') | 'rejected' (HTTP 400 / 'ER1'/'ER3').
+function deviceError(kind, message) {
+	return Object.assign(new Error(message), { deviceError: kind })
+}
+
 // Map a failed poll to a connection status, or null when we aborted the request
 // ourselves (destroy/configUpdated) and the status is owned elsewhere.
 export function pollErrorToStatus(error) {
@@ -58,6 +69,7 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 
 		this.pollID = null
 		this.pollActive = false
+		this.busyRetries = 0
 	}
 
 	async init(config) {
@@ -71,8 +83,6 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 
 		this.config = config
 
-		// Field defaults (see config.js) are applied by the host on first init; no need to
-		// re-apply them here. initProduct() falls back to the default model if unset.
 		this.product = initProduct(this.config.model)
 
 		this.init_variables()
@@ -86,6 +96,7 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 
 		this.controller = new AbortController()
 		this.pollActive = false
+		this.busyRetries = 0
 
 		if (!this.config.host) {
 			this.updateStatus(InstanceStatus.BadConfig, 'No controller IP address / hostname configured')
@@ -140,27 +151,50 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 			signal: AbortSignal.any([t, controller.signal]),
 		}
 
+		const cmd = queue.shift()
 		let retryDelay = this.config.polldelay
 		const start = Date.now()
 		try {
-			await this.getAPI(queue.shift(), options)
+			await this.getAPI(cmd, options)
 
 			this.updateStatus(InstanceStatus.Ok)
+			this.busyRetries = 0
 		} catch (error) {
-			const result = pollErrorToStatus(error)
-			if (result) {
-				this.updateStatus(result.status, result.message)
-			}
+			if (error.deviceError === 'busy') {
+				// The controller is momentarily busy (e.g. group switching). We reached it, so
+				// keep Ok and retry the same command a bounded number of times before dropping it.
+				this.updateStatus(InstanceStatus.Ok)
+				if (this.busyRetries < MAX_BUSY_RETRIES) {
+					this.busyRetries++
+					queue.unshift(cmd)
+					retryDelay = BUSY_RETRY_DELAY
+					this.log('debug', `${error.message} (retry ${this.busyRetries}/${MAX_BUSY_RETRIES})`)
+				} else {
+					this.busyRetries = 0
+					this.log('warn', `${error.message} — dropped after ${MAX_BUSY_RETRIES} retries`)
+				}
+			} else if (error.deviceError === 'rejected') {
+				// Unsupported command or value out of range. The device is reachable; drop it and warn.
+				this.busyRetries = 0
+				this.updateStatus(InstanceStatus.Ok)
+				this.log('warn', error.message)
+			} else {
+				this.busyRetries = 0
+				const result = pollErrorToStatus(error)
+				if (result) {
+					this.updateStatus(result.status, result.message)
+				}
 
-			// Discard pending commands on any failure except the "reached / Ok" case,
-			// where the command was already delivered to the device.
-			if (!result || result.status !== InstanceStatus.Ok) {
-				queue.length = 0
-			}
+				// Discard pending commands on any failure except the "reached / Ok" case,
+				// where the command was already delivered to the device.
+				if (!result || result.status !== InstanceStatus.Ok) {
+					queue.length = 0
+				}
 
-			// Back off instead of hammering an unreachable controller every polldelay.
-			if (result?.status === InstanceStatus.ConnectionFailure) {
-				retryDelay = RECONNECT_DELAY
+				// Back off instead of hammering an unreachable controller every polldelay.
+				if (result?.status === InstanceStatus.ConnectionFailure) {
+					retryDelay = RECONNECT_DELAY
+				}
 			}
 		} finally {
 			const dt = Date.now() - start
@@ -186,12 +220,32 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 		this.log('debug', 'GET ' + url)
 
 		const response = await fetch(url, options)
+
+		// The controller signals protocol errors differently per model: the RP50 uses HTTP
+		// status codes (400 = unsupported command / value out of range, 500 = busy), while the
+		// RP120/150/60 reply 200 with an ER1/ER2/ER3 code in the body.
+		if (response.status === 500) {
+			throw deviceError('busy', `Controller busy (HTTP 500) for '${cmd}'`)
+		}
+		if (response.status === 400) {
+			throw deviceError('rejected', `Controller rejected '${cmd}' (HTTP 400)`)
+		}
 		if (!response.ok || response.status !== 200) {
 			const err = new Error(`HTTP error: ${response.status} ${response.statusText}`)
 			err.httpStatus = response.status
 			throw err
 		}
-		this.parseData(await response.text())
+
+		const body = await response.text()
+		const er = body.trim().match(/^ER([123])/)
+		if (er) {
+			if (er[1] === '2') {
+				throw deviceError('busy', `Controller busy (ER2) for '${cmd}'`)
+			}
+			throw deviceError('rejected', `Controller rejected '${cmd}' (ER${er[1]})`)
+		}
+
+		this.parseData(body)
 	}
 
 	parseData(cmd) {
