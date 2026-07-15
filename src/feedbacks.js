@@ -6,15 +6,27 @@ const colorOrange = combineRgb(255, 102, 0)
 const colorGreen = combineRgb(0, 204, 0)
 const colorGrey = combineRgb(51, 51, 51)
 
-// All feedbacks are boolean "is this id currently selected" checks that differ
-// only in labels, colour and the data key they compare against.
-function makeSelectedFeedback(self, { name, description, label, id, choices, bgcolor }) {
+// All feedbacks are boolean "is this id currently selected" checks that differ only in
+// labels, colour and the data key. The selector is a `number` field so users can drive it
+// with variables/expressions (the host coerces + range-validates before the callback).
+function makeSelectedFeedback(self, { name, description, label, id, max, noun, bgcolor }) {
 	return {
 		type: 'boolean',
 		name,
 		description,
 		defaultStyle: { color: colorWhite, bgcolor },
-		options: [{ type: 'dropdown', label, id, default: choices[0].id, choices }],
+		options: [
+			{
+				type: 'number',
+				label,
+				id,
+				default: 1,
+				min: 1,
+				max,
+				asInteger: true,
+				expressionDescription: `${noun} (1–${max})`,
+			},
+		],
 		callback: (feedback) => Number(feedback.options[id]) === self.data[id],
 	}
 }
@@ -27,7 +39,8 @@ export function setFeedbacks(self) {
 		description: 'Indicate if Camera is selected',
 		label: CAMERA_LABEL,
 		id: 'camera',
-		choices: self.product.cameraChoices,
+		max: self.product.numberOfCameras,
+		noun: 'Camera number',
 		bgcolor: colorOrange,
 	})
 
@@ -36,7 +49,8 @@ export function setFeedbacks(self) {
 		description: 'Indicate if Group is selected',
 		label: GROUP_LABEL,
 		id: 'group',
-		choices: self.product.groupChoices,
+		max: self.product.numberOfGroups,
+		noun: 'Group number',
 		bgcolor: colorGreen,
 	})
 
@@ -45,7 +59,8 @@ export function setFeedbacks(self) {
 		description: 'Indicate if Port is selected',
 		label: PORT_LABEL,
 		id: 'port',
-		choices: self.product.portChoices,
+		max: self.product.numberOfPorts,
+		noun: 'Port number',
 		bgcolor: colorOrange,
 	})
 
@@ -55,7 +70,8 @@ export function setFeedbacks(self) {
 			description: 'Indicates if the selected PMEM is currently active (last selected)',
 			label: 'Memory',
 			id: 'pmem',
-			choices: self.product.presetChoices,
+			max: self.product.numberOfPresets,
+			noun: 'Preset memory number',
 			bgcolor: colorGrey,
 		})
 	}
@@ -66,7 +82,8 @@ export function setFeedbacks(self) {
 			description: 'Indicates if the selected TMEM is currently active (last selected)',
 			label: 'Memory',
 			id: 'tmem',
-			choices: self.product.tracingChoices,
+			max: self.product.numberOfTracing,
+			noun: 'Tracing memory number',
 			bgcolor: colorGrey,
 		})
 	}

@@ -1,4 +1,5 @@
 import { combineRgb } from '@companion-module/base'
+import { CAMERA_LABEL, GROUP_LABEL, PORT_LABEL, PRESET_LABEL, TRACING_LABEL } from './common.js'
 
 const colorWhite = combineRgb(255, 255, 255)
 const colorRed = combineRgb(255, 0, 0)
@@ -9,29 +10,41 @@ const colorGrey = combineRgb(51, 51, 51)
 const colorPurple = combineRgb(255, 0, 255)
 const colorBlack = combineRgb(0, 0, 0)
 
-// Generate one "select/recall" button preset per choice. All five variants
-// (camera/group/port/pmem/tmem) share this shape and differ only in the fields
-// passed in here.
+// Generate one "select/recall" button preset per value in 1..count. All five variants
+// (camera/group/port/pmem/tmem) share this shape and differ only in the fields passed here.
 function pushSelectPresets(
 	presets,
-	{ choices, category, name, textPrefix, bgcolor, actionId, actionOptions, feedbackId, feedbackOptions, feedbackBg },
+	{
+		count,
+		labelPrefix,
+		category,
+		name,
+		textPrefix,
+		bgcolor,
+		actionId,
+		actionOptions,
+		feedbackId,
+		feedbackOptions,
+		feedbackBg,
+	},
 ) {
-	for (const choice of choices) {
+	for (let n = 1; n <= count; n++) {
+		const label = `${labelPrefix} ${n}`
 		presets.push({
 			type: 'button',
 			category,
-			name: typeof name === 'function' ? name(choice) : name,
+			name: typeof name === 'function' ? name(label) : name,
 			style: {
-				text: textPrefix + choice.label,
+				text: textPrefix + label,
 				size: '14',
 				color: colorWhite,
 				bgcolor,
 			},
-			steps: [{ down: [{ actionId, options: actionOptions(choice) }], up: [] }],
+			steps: [{ down: [{ actionId, options: actionOptions(n) }], up: [] }],
 			feedbacks: [
 				{
 					feedbackId,
-					options: feedbackOptions(choice),
+					options: feedbackOptions(n),
 					style: { color: colorWhite, bgcolor: feedbackBg },
 				},
 			],
@@ -43,41 +56,44 @@ export function setPresets(self) {
 	const presets = []
 
 	pushSelectPresets(presets, {
-		choices: self.product.cameraChoices,
+		count: self.product.numberOfCameras,
+		labelPrefix: CAMERA_LABEL,
 		category: 'Select Camera',
 		name: 'Select camera by camera number',
 		textPrefix: 'Select\\n',
 		bgcolor: colorBlack,
 		actionId: 'selectCamera',
-		actionOptions: (c) => ({ camera: c.id }),
+		actionOptions: (n) => ({ camera: n }),
 		feedbackId: 'cameraSelected',
-		feedbackOptions: (c) => ({ camera: c.id }),
+		feedbackOptions: (n) => ({ camera: n }),
 		feedbackBg: colorOrange,
 	})
 
 	pushSelectPresets(presets, {
-		choices: self.product.groupChoices,
+		count: self.product.numberOfGroups,
+		labelPrefix: GROUP_LABEL,
 		category: 'Select Group',
 		name: 'Select camera group',
 		textPrefix: 'Select\\n',
 		bgcolor: colorBlue,
 		actionId: 'selectGroup',
-		actionOptions: (c) => ({ group: c.id }),
+		actionOptions: (n) => ({ group: n }),
 		feedbackId: 'groupSelected',
-		feedbackOptions: (c) => ({ group: c.id }),
+		feedbackOptions: (n) => ({ group: n }),
 		feedbackBg: colorGreen,
 	})
 
 	pushSelectPresets(presets, {
-		choices: self.product.portChoices,
+		count: self.product.numberOfPorts,
+		labelPrefix: PORT_LABEL,
 		category: 'Select Port',
 		name: 'Select camera port (in a group)',
 		textPrefix: 'Select\\n',
 		bgcolor: colorBlack,
 		actionId: 'selectPort',
-		actionOptions: (c) => ({ port: c.id }),
+		actionOptions: (n) => ({ port: n }),
 		feedbackId: 'portSelected',
-		feedbackOptions: (c) => ({ port: c.id }),
+		feedbackOptions: (n) => ({ port: n }),
 		feedbackBg: colorOrange,
 	})
 
@@ -98,30 +114,32 @@ export function setPresets(self) {
 
 	if (self.product.presetMemory) {
 		pushSelectPresets(presets, {
-			choices: self.product.presetChoices,
+			count: self.product.numberOfPresets,
+			labelPrefix: PRESET_LABEL,
 			category: 'Preset Memory (PMEM)',
 			name: 'Recall preset memory',
 			textPrefix: 'Recall\\n',
 			bgcolor: colorBlack,
 			actionId: 'presetMemory',
-			actionOptions: (c) => ({ preset: c.id }),
+			actionOptions: (n) => ({ preset: n }),
 			feedbackId: 'presetSelected',
-			feedbackOptions: (c) => ({ pmem: c.id }),
+			feedbackOptions: (n) => ({ pmem: n }),
 			feedbackBg: colorGrey,
 		})
 	}
 
 	if (self.product.tracingMemory) {
 		pushSelectPresets(presets, {
-			choices: self.product.tracingChoices,
+			count: self.product.numberOfTracing,
+			labelPrefix: TRACING_LABEL,
 			category: 'Tracing Memory (TMEM)',
-			name: (c) => c.label + ' Standby',
+			name: (label) => `${label} Standby`,
 			textPrefix: 'Standby\\n',
 			bgcolor: colorBlack,
 			actionId: 'tracingMemory',
-			actionOptions: (c) => ({ opt: '02', trace: c.id }),
+			actionOptions: (n) => ({ opt: '02', trace: n }),
 			feedbackId: 'traceSelected',
-			feedbackOptions: (c) => ({ tmem: c.id }),
+			feedbackOptions: (n) => ({ tmem: n }),
 			feedbackBg: colorGrey,
 		})
 

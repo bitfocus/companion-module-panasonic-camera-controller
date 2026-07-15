@@ -1,5 +1,3 @@
-import { CAMERA_LABEL, GROUP_LABEL, PORT_LABEL, PRESET_LABEL, TRACING_LABEL } from './common.js'
-
 export const MODELS = [
 	{ id: 'AW-RP50', label: 'AW-RP50' },
 	{ id: 'AW-RP60', label: 'AW-RP60' },
@@ -43,40 +41,29 @@ export const PRODUCTS = {
 		presetMemory: true,
 		tracingMemory: true,
 	},
-}
-
-// Preset/tracing memory ids must be sent zero-padded to three digits (e.g. XPM:01:001),
-// hence the explicit `padded` flag; camera/group/port ids stay plain numbers.
-export function generateChoices(label, count, padded = false) {
-	return Array.from({ length: count }, (_, i) => {
-		const n = i + 1
-		return { id: padded ? String(n).padStart(3, '0') : n, label: `${label} ${n}` }
-	})
+	'AW-RP200': {
+		numberOfCameras: 200,
+		numberOfGroups: 20,
+		numberOfPorts: 10,
+		numberOfPresets: 100,
+		numberOfTracing: 10,
+		presetMemory: true,
+		tracingMemory: true,
+	},
 }
 
 const productCache = new Map()
 
-// Pure factory: returns a frozen, per-model product object with its derived choice
-// lists, memoized by model. Unknown models fall back to the default instead of crashing.
+// Pure factory: returns a frozen, per-model product (camera/group/port/preset/tracing
+// counts + capability flags), memoized by model. The numeric ranges drive the number
+// input fields in actions/feedbacks/presets. Unknown models fall back to the default
+// instead of crashing.
 export function initProduct(model) {
 	const key = PRODUCTS[model] ? model : DEFAULT_MODEL
 
 	let product = productCache.get(key)
 	if (!product) {
-		const base = PRODUCTS[key]
-		product = {
-			...base,
-			cameraChoices: generateChoices(CAMERA_LABEL, base.numberOfCameras),
-			groupChoices: generateChoices(GROUP_LABEL, base.numberOfGroups),
-			portChoices: generateChoices(PORT_LABEL, base.numberOfPorts),
-		}
-		if (base.presetMemory) {
-			product.presetChoices = generateChoices(PRESET_LABEL, base.numberOfPresets, true)
-		}
-		if (base.tracingMemory) {
-			product.tracingChoices = generateChoices(TRACING_LABEL, base.numberOfTracing, true)
-		}
-		Object.freeze(product)
+		product = Object.freeze({ ...PRODUCTS[key] })
 		productCache.set(key, product)
 	}
 	return product
