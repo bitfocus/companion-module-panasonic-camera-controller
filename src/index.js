@@ -6,7 +6,6 @@ import { setPresets } from './presets.js'
 import UpgradeScripts from './upgrades.js'
 import { setVariables, checkVariables } from './vars.js'
 import { ConfigFields } from './config.js'
-import Queue from 'queue-fifo'
 
 class PanasonicCameraControllerInstance extends InstanceBase {
 	constructor(internal) {
@@ -43,7 +42,7 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 
 		this.checkVariables()
 
-		this.queue = new Queue()
+		this.queue = []
 
 		this.controller = new AbortController()
 		this.pollActive = false
@@ -73,12 +72,12 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 	async sendCommand(cmd) {
 		this.log('debug', 'sendCommand()')
 
-		this.queue.enqueue(cmd)
+		this.queue.push(cmd)
 
 		// With polling disabled, drive a poll loop to fetch the updated state.
 		// Only start one if none is already draining the queue, to avoid overlapping loops.
 		if (!this.controller.signal.aborted && !this.config.polling && !this.pollActive) {
-			this.queue.enqueue('XQC:01')
+			this.queue.push('XQC:01')
 			this.pullData()
 		}
 	}
@@ -92,8 +91,8 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 		const queue = this.queue
 		this.pollActive = true
 
-		if (queue.isEmpty()) {
-			queue.enqueue('XQC:01')
+		if (queue.length === 0) {
+			queue.push('XQC:01')
 		}
 
 		const t = AbortSignal.timeout(5000)
@@ -106,7 +105,7 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 
 		const start = Date.now()
 		try {
-			await this.getAPI(queue.dequeue(), options)
+			await this.getAPI(queue.shift(), options)
 
 			this.updateStatus(InstanceStatus.Ok)
 		} catch (error) {
@@ -124,14 +123,14 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 					)
 				// falls through — also clear the queue like AbortError
 				case 'AbortError':
-					queue.clear()
+					queue.length = 0
 					break
 				default:
 					this.log('error', String(error))
 			}
 		} finally {
 			const dt = Date.now() - start
-			this.log('debug', `...returned after ${dt}ms. ${String(queue.size())} commands left in queue.`)
+			this.log('debug', `...returned after ${dt}ms. ${String(queue.length)} commands left in queue.`)
 
 			this.checkVariables()
 			this.checkFeedbacks()
@@ -139,7 +138,7 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 			// Skip if this loop was superseded by a newer generation (configUpdated);
 			// the new loop owns pollID/pollActive.
 			if (controller === this.controller) {
-				if (!controller.signal.aborted && (this.config.polling || !queue.isEmpty())) {
+				if (!controller.signal.aborted && (this.config.polling || queue.length > 0)) {
 					this.pollID = setTimeout(() => this.pullData(), this.config.polldelay)
 				} else {
 					this.pollActive = false
