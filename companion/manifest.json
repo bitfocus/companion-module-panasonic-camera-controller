@@ -1,9 +1,10 @@
 {
+	"type": "connection",
 	"id": "panasonic-camera-controller",
 	"name": "panasonic-camera-controller",
 	"shortname": "Remote Camera Controller",
-	"description": "Companion module for Panasonic AW-RP50, AW-RP60, AW-RP120 and AW-RP150",
-	"version": "2.1.1",
+	"description": "Companion module for Panasonic AW-RP50, AW-RP60, AW-RP120, AW-RP150 and AW-RP200 Remote Camera Controllers",
+	"version": "2.2.0",
 	"license": "MIT",
 	"repository": "git+https://github.com/bitfocus/companion-module-panasonic-camera-controller.git",
 	"bugs": "https://github.com/bitfocus/companion-module-panasonic-camera-controller/issues",
@@ -21,18 +22,6 @@
 		"entrypoint": "../src/index.js"
 	},
 	"manufacturer": "Panasonic",
-	"products": [
-		"Remote Camera Controller"
-	],
-	"keywords": [
-		"Panasonic",
-		"PTZ",
-		"Remote",
-		"Camera",
-		"Controller",
-		"AW-RP50",
-		"AW-RP60",
-		"AW-RP120",
-		"AW-RP150"
-	]
+	"products": ["Remote Camera Controller", "AW-RP50", "AW-RP60", "AW-RP120", "AW-RP150", "AW-RP200"],
+	"keywords": ["Panasonic", "PTZ", "Remote", "Camera", "Controller"]
 }

@@ -1,4 +1,3 @@
-import { Regex } from '@companion-module/base'
 import { MODELS } from './models.js'
 
 export const ConfigFields = [
@@ -30,7 +29,6 @@ export const ConfigFields = [
 		id: 'host',
 		label: 'IP address / Hostname',
 		width: 5,
-		//regex: Regex.IP,
 	},
 	{
 		type: 'number',
@@ -38,7 +36,9 @@ export const ConfigFields = [
 		label: 'API port (default: 80)',
 		width: 4,
 		default: 80,
-		regex: Regex.PORT,
+		min: 1,
+		max: 65535,
+		asInteger: true,
 	},
 	{
 		type: 'static-text',
@@ -79,6 +79,7 @@ export const ConfigFields = [
 		default: 100,
 		min: 25,
 		max: 2500,
+		asInteger: true,
 	},
 	{
 		type: 'static-text',
