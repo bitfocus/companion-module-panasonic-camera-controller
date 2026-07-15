@@ -1,126 +1,74 @@
 import { combineRgb } from '@companion-module/base'
 import { CAMERA_LABEL, GROUP_LABEL, PORT_LABEL } from './common.js'
 
+const colorWhite = combineRgb(255, 255, 255)
+const colorOrange = combineRgb(255, 102, 0)
+const colorGreen = combineRgb(0, 204, 0)
+const colorGrey = combineRgb(51, 51, 51)
+
+// All feedbacks are boolean "is this id currently selected" checks that differ
+// only in labels, colour and the data key they compare against.
+function makeSelectedFeedback(self, { name, description, label, id, choices, bgcolor }) {
+	return {
+		type: 'boolean',
+		name,
+		description,
+		defaultStyle: { color: colorWhite, bgcolor },
+		options: [{ type: 'dropdown', label, id, default: choices[0].id, choices }],
+		callback: (feedback) => Number(feedback.options[id]) === self.data[id],
+	}
+}
+
 export function setFeedbacks(self) {
 	const feedbacks = {}
 
-	const colorWhite = combineRgb(255, 255, 255)
-	const colorOrange = combineRgb(255, 102, 0)
-	const colorGreen = combineRgb(0, 204, 0)
-	const colorGrey = combineRgb(51, 51, 51)
-
-	feedbacks.cameraSelected = {
-		type: 'boolean',
+	feedbacks.cameraSelected = makeSelectedFeedback(self, {
 		name: 'Camera selected',
 		description: 'Indicate if Camera is selected',
-		defaultStyle: {
-			color: colorWhite,
-			bgcolor: colorOrange,
-		},
-		options: [
-			{
-				type: 'dropdown',
-				label: CAMERA_LABEL,
-				id: 'camera',
-				default: self.product.cameraChoices[0].id,
-				choices: self.product.cameraChoices,
-			},
-		],
-		callback: (feedback) => {
-			return Number(feedback.options.camera) === self.data.camera
-		},
-	}
+		label: CAMERA_LABEL,
+		id: 'camera',
+		choices: self.product.cameraChoices,
+		bgcolor: colorOrange,
+	})
 
-	feedbacks.groupSelected = {
-		type: 'boolean',
+	feedbacks.groupSelected = makeSelectedFeedback(self, {
 		name: 'Group selected',
 		description: 'Indicate if Group is selected',
-		defaultStyle: {
-			color: colorWhite,
-			bgcolor: colorGreen,
-		},
-		options: [
-			{
-				type: 'dropdown',
-				label: GROUP_LABEL,
-				id: 'group',
-				default: self.product.groupChoices[0].id,
-				choices: self.product.groupChoices,
-			},
-		],
-		callback: (feedback) => {
-			return Number(feedback.options.group) === self.data.group
-		},
-	}
+		label: GROUP_LABEL,
+		id: 'group',
+		choices: self.product.groupChoices,
+		bgcolor: colorGreen,
+	})
 
-	feedbacks.portSelected = {
-		type: 'boolean',
+	feedbacks.portSelected = makeSelectedFeedback(self, {
 		name: 'Port selected',
 		description: 'Indicate if Port is selected',
-		defaultStyle: {
-			color: colorWhite,
-			bgcolor: colorOrange,
-		},
-		options: [
-			{
-				type: 'dropdown',
-				label: PORT_LABEL,
-				id: 'port',
-				default: self.product.portChoices[0].id,
-				choices: self.product.portChoices,
-			},
-		],
-		callback: (feedback) => {
-			return Number(feedback.options.port) === self.data.port
-		},
-	}
+		label: PORT_LABEL,
+		id: 'port',
+		choices: self.product.portChoices,
+		bgcolor: colorOrange,
+	})
 
 	if (self.product.presetMemory) {
-		feedbacks.presetSelected = {
-			type: 'boolean',
+		feedbacks.presetSelected = makeSelectedFeedback(self, {
 			name: 'Preset Memory selected',
 			description: 'Indicates if the selected PMEM is currently active (last selected)',
-			defaultStyle: {
-				color: colorWhite,
-				bgcolor: colorGrey,
-			},
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Memory',
-					id: 'pmem',
-					default: self.product.presetChoices[0].id,
-					choices: self.product.presetChoices,
-				},
-			],
-			callback: function (feedback) {
-				return Number(feedback.options.pmem) === self.data.pmem
-			},
-		}
+			label: 'Memory',
+			id: 'pmem',
+			choices: self.product.presetChoices,
+			bgcolor: colorGrey,
+		})
 	}
 
 	if (self.product.tracingMemory) {
-		feedbacks.traceSelected = {
-			type: 'boolean',
+		feedbacks.traceSelected = makeSelectedFeedback(self, {
 			name: 'Tracing Memory selected',
 			description: 'Indicates if the selected TMEM is currently active (last selected)',
-			defaultStyle: {
-				color: colorWhite,
-				bgcolor: colorGrey,
-			},
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Memory',
-					id: 'tmem',
-					default: self.product.tracingChoices[0].id,
-					choices: self.product.tracingChoices,
-				},
-			],
-			callback: function (feedback) {
-				return Number(feedback.options.tmem) === self.data.tmem
-			},
-		}
+			label: 'Memory',
+			id: 'tmem',
+			choices: self.product.tracingChoices,
+			bgcolor: colorGrey,
+		})
 	}
 
 	return feedbacks
