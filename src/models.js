@@ -3,6 +3,7 @@ export const MODELS = [
 	{ id: 'AW-RP60', label: 'AW-RP60' },
 	{ id: 'AW-RP120', label: 'AW-RP120' },
 	{ id: 'AW-RP150', label: 'AW-RP150' },
+	{ id: 'AW-RP200', label: 'AW-RP200' },
 ]
 
 export const DEFAULT_MODEL = 'AW-RP50'
