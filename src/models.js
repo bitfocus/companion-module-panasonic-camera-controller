@@ -7,6 +7,8 @@ export const MODELS = [
 	{ id: 'AW-RP150', label: 'AW-RP150' },
 ]
 
+export const DEFAULT_MODEL = 'AW-RP50'
+
 export const PRODUCTS = {
 	'AW-RP50': {
 		numberOfCameras: 100,
@@ -19,6 +21,7 @@ export const PRODUCTS = {
 		numberOfCameras: 200,
 		numberOfGroups: 40,
 		numberOfPorts: 5,
+		numberOfPresets: 100,
 		presetMemory: true,
 		tracingMemory: false,
 	},
@@ -26,6 +29,8 @@ export const PRODUCTS = {
 		numberOfCameras: 100,
 		numberOfGroups: 10,
 		numberOfPorts: 10,
+		numberOfPresets: 100,
+		numberOfTracing: 10,
 		presetMemory: true,
 		tracingMemory: true,
 	},
@@ -33,38 +38,46 @@ export const PRODUCTS = {
 		numberOfCameras: 200,
 		numberOfGroups: 20,
 		numberOfPorts: 10,
+		numberOfPresets: 100,
+		numberOfTracing: 10,
 		presetMemory: true,
 		tracingMemory: true,
 	},
 }
 
-export function generateChoices(label, numberOfChoices) {
-	let choice = 1
-
-	if (label == PRESET_LABEL || label == TRACING_LABEL) {
-		return Array.from({ length: numberOfChoices }, () => ({
-			id: String(choice).padStart(3, '0'),
-			label: `${label} ${choice++}`,
-		}))
-	} else {
-		return Array.from({ length: numberOfChoices }, () => ({
-			id: choice,
-			label: `${label} ${choice++}`,
-		}))
-	}
+// Preset/tracing memory ids must be sent zero-padded to three digits (e.g. XPM:01:001),
+// hence the explicit `padded` flag; camera/group/port ids stay plain numbers.
+export function generateChoices(label, count, padded = false) {
+	return Array.from({ length: count }, (_, i) => {
+		const n = i + 1
+		return { id: padded ? String(n).padStart(3, '0') : n, label: `${label} ${n}` }
+	})
 }
 
-export function initProduct(product) {
-	if (!PRODUCTS[product].cameraChoices) {
-		PRODUCTS[product].cameraChoices = generateChoices(CAMERA_LABEL, PRODUCTS[product].numberOfCameras)
-		PRODUCTS[product].groupChoices = generateChoices(GROUP_LABEL, PRODUCTS[product].numberOfGroups)
-		PRODUCTS[product].portChoices = generateChoices(PORT_LABEL, PRODUCTS[product].numberOfPorts)
-		if (PRODUCTS[product].presetMemory) {
-			PRODUCTS[product].presetChoices = generateChoices(PRESET_LABEL, 100)
+const productCache = new Map()
+
+// Pure factory: returns a frozen, per-model product object with its derived choice
+// lists, memoized by model. Unknown models fall back to the default instead of crashing.
+export function initProduct(model) {
+	const key = PRODUCTS[model] ? model : DEFAULT_MODEL
+
+	let product = productCache.get(key)
+	if (!product) {
+		const base = PRODUCTS[key]
+		product = {
+			...base,
+			cameraChoices: generateChoices(CAMERA_LABEL, base.numberOfCameras),
+			groupChoices: generateChoices(GROUP_LABEL, base.numberOfGroups),
+			portChoices: generateChoices(PORT_LABEL, base.numberOfPorts),
 		}
-		if (PRODUCTS[product].tracingMemory) {
-			PRODUCTS[product].tracingChoices = generateChoices(TRACING_LABEL, 10)
+		if (base.presetMemory) {
+			product.presetChoices = generateChoices(PRESET_LABEL, base.numberOfPresets, true)
 		}
+		if (base.tracingMemory) {
+			product.tracingChoices = generateChoices(TRACING_LABEL, base.numberOfTracing, true)
+		}
+		Object.freeze(product)
+		productCache.set(key, product)
 	}
-	return PRODUCTS[product]
+	return product
 }
