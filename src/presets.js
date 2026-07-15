@@ -287,7 +287,6 @@ export function setPresets(self) {
 							actionId: 'tracingMemory',
 							options: {
 								opt: '00',
-								//trace: '001',
 							},
 						},
 					],
