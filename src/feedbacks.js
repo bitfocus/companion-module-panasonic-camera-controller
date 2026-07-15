@@ -22,12 +22,12 @@ export function setFeedbacks(self) {
 				type: 'dropdown',
 				label: CAMERA_LABEL,
 				id: 'camera',
-				default: '1',
+				default: self.product.cameraChoices[0].id,
 				choices: self.product.cameraChoices,
 			},
 		],
 		callback: (feedback) => {
-			return feedback.options.camera == self.data.camera
+			return Number(feedback.options.camera) === self.data.camera
 		},
 	}
 
@@ -44,12 +44,12 @@ export function setFeedbacks(self) {
 				type: 'dropdown',
 				label: GROUP_LABEL,
 				id: 'group',
-				default: '1',
+				default: self.product.groupChoices[0].id,
 				choices: self.product.groupChoices,
 			},
 		],
 		callback: (feedback) => {
-			return feedback.options.group == self.data.group
+			return Number(feedback.options.group) === self.data.group
 		},
 	}
 
@@ -66,12 +66,12 @@ export function setFeedbacks(self) {
 				type: 'dropdown',
 				label: PORT_LABEL,
 				id: 'port',
-				default: '1',
+				default: self.product.portChoices[0].id,
 				choices: self.product.portChoices,
 			},
 		],
 		callback: (feedback) => {
-			return feedback.options.port == self.data.port
+			return Number(feedback.options.port) === self.data.port
 		},
 	}
 
@@ -94,7 +94,7 @@ export function setFeedbacks(self) {
 				},
 			],
 			callback: function (feedback) {
-				return feedback.options.pmem == self.data.pmem
+				return Number(feedback.options.pmem) === self.data.pmem
 			},
 		}
 	}
@@ -118,7 +118,7 @@ export function setFeedbacks(self) {
 				},
 			],
 			callback: function (feedback) {
-				return feedback.options.tmem == self.data.tmem
+				return Number(feedback.options.tmem) === self.data.tmem
 			},
 		}
 	}

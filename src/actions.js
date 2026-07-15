@@ -96,7 +96,7 @@ export function setActions(self) {
 			],
 			callback: async (action) => {
 				await self.sendCommand(`XPM:01:${action.options.preset}`)
-				self.data.pmem = action.options.preset
+				self.data.pmem = parseInt(action.options.preset, 10)
 				self.data.tmem = null
 			},
 		}
@@ -130,8 +130,8 @@ export function setActions(self) {
 				switch (action.options.opt) {
 					case '02': // Standby
 						await self.sendCommand(`XTM:${action.options.opt}:${action.options.trace}`)
-						self.data.pmem = action.options.trace
-						self.data.tmem = action.options.trace
+						self.data.pmem = parseInt(action.options.trace, 10)
+						self.data.tmem = parseInt(action.options.trace, 10)
 						break
 					case '01': // Play
 						await self.sendCommand(`XTM:${action.options.opt}:000`)

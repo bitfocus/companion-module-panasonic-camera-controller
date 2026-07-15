@@ -12,7 +12,7 @@ export function checkVariables(self) {
 		camera: self.data.camera ?? undefined,
 		group: self.data.group ?? undefined,
 		port: self.data.port ?? undefined,
-		pmem: self.data.pmem != null ? parseInt(self.data.pmem, 10) : undefined,
-		tmem: self.data.tmem != null ? parseInt(self.data.tmem, 10) : undefined,
+		pmem: self.data.pmem ?? undefined,
+		tmem: self.data.tmem ?? undefined,
 	})
 }
