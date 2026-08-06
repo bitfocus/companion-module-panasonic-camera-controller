@@ -30,6 +30,20 @@ function normalizeNumericOptions(_context, props) {
 	}
 }
 
+// The tracing memory action's `trace` number field is required even when hidden (Play/Stop),
+// but older TMEM Play/Stop buttons were created without it, so option validation now rejects
+// them. Backfill a dummy value for tracingMemory actions that are missing `trace`.
+function backfillTracingTrace(_context, props) {
+	const changed = []
+	for (const action of props.actions) {
+		if (action.actionId === 'tracingMemory' && action.options.trace === undefined) {
+			action.options.trace = { isExpression: false, value: 1 }
+			changed.push(action)
+		}
+	}
+	return { updatedConfig: null, updatedActions: changed, updatedFeedbacks: [] }
+}
+
 export default [
 	CreateConvertToBooleanFeedbackUpgradeScript({
 		cameraSelected: true,
@@ -37,4 +51,5 @@ export default [
 		portSelected: true,
 	}),
 	normalizeNumericOptions,
+	backfillTracingTrace,
 ]

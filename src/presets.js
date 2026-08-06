@@ -187,7 +187,9 @@ export function setPresets(self) {
 				color: colorWhite,
 				bgcolor: colorGreen,
 			},
-			steps: [{ down: [{ actionId: 'tracingMemory', options: { opt: '01' } }], up: [] }],
+			// trace is irrelevant for Play, but the number field still requires a value even
+			// while hidden by isVisibleExpression, so provide a dummy.
+			steps: [{ down: [{ actionId: 'tracingMemory', options: { opt: '01', trace: 1 } }], up: [] }],
 			feedbacks: [],
 		}
 		presets['tmem_stop'] = {
@@ -199,7 +201,8 @@ export function setPresets(self) {
 				color: colorWhite,
 				bgcolor: colorRed,
 			},
-			steps: [{ down: [{ actionId: 'tracingMemory', options: { opt: '00' } }], up: [] }],
+			// trace is irrelevant for Stop, but the hidden number field still requires a value.
+			steps: [{ down: [{ actionId: 'tracingMemory', options: { opt: '00', trace: 1 } }], up: [] }],
 			feedbacks: [],
 		}
 
