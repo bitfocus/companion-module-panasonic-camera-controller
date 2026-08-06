@@ -204,7 +204,7 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 			// updates or reschedule; the current generation owns pollID/pollActive.
 			if (controller === this.controller && !controller.signal.aborted) {
 				this.checkVariables()
-				this.checkFeedbacks()
+				this.checkAllFeedbacks()
 
 				if (this.config.polling || queue.length > 0) {
 					this.pollID = setTimeout(() => this.pullData(), retryDelay)
