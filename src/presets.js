@@ -10,111 +10,124 @@ const colorGrey = combineRgb(51, 51, 51)
 const colorPurple = combineRgb(255, 0, 255)
 const colorBlack = combineRgb(0, 0, 0)
 
-// Add one "simple" button preset per value in 1..count to the keyed `presets` object.
-// Returns the generated preset ids so the caller can list them in a preset section.
-function addSelectPresets(
+// An action/feedback option that resolves to the button's local variable value.
+const localRef = (varName) => ({ isExpression: true, value: `$(local:${varName})` })
+
+// Define a single "template" preset: one button definition whose selection value comes from a
+// per-button local variable. A matching template group (see below) then generates the individual
+// buttons for 1..count by injecting each value — far cheaper than emitting a preset per value.
+function addTemplatePreset(
 	presets,
-	{
-		idPrefix,
-		count,
-		labelPrefix,
-		name,
-		textPrefix,
-		bgcolor,
-		actionId,
-		actionOptions,
-		feedbackId,
-		feedbackOptions,
-		feedbackBg,
-	},
+	id,
+	{ name, labelPrefix, textPrefix, bgcolor, varName, actionId, actionOptions, feedbackId, feedbackOptions, feedbackBg },
 ) {
-	const ids = []
-	for (let n = 1; n <= count; n++) {
-		const id = `${idPrefix}_${n}`
-		const label = `${labelPrefix} ${n}`
-		presets[id] = {
-			type: 'simple',
-			name: typeof name === 'function' ? name(label) : name,
-			style: {
-				text: textPrefix + label,
-				size: '14',
-				color: colorWhite,
-				bgcolor,
+	presets[id] = {
+		type: 'simple',
+		name,
+		style: {
+			text: `${textPrefix}${labelPrefix} $(local:${varName})`,
+			size: '14',
+			color: colorWhite,
+			bgcolor,
+		},
+		localVariables: [{ variableType: 'simple', variableName: varName, startupValue: 1 }],
+		steps: [{ down: [{ actionId, options: actionOptions(localRef(varName)) }], up: [] }],
+		feedbacks: [
+			{
+				feedbackId,
+				options: feedbackOptions(localRef(varName)),
+				style: { color: colorWhite, bgcolor: feedbackBg },
 			},
-			steps: [{ down: [{ actionId, options: actionOptions(n) }], up: [] }],
-			feedbacks: [
-				{
-					feedbackId,
-					options: feedbackOptions(n),
-					style: { color: colorWhite, bgcolor: feedbackBg },
-				},
-			],
-		}
-		ids.push(id)
+		],
 	}
-	return ids
 }
 
-// Returns the preset definitions (keyed by id) and the section structure that references
-// them, as expected by setPresetDefinitions(structure, presets) in @companion-module/base 2.x.
+// A template group that expands the template preset into one button per value in 1..count.
+function templateGroup(id, name, presetId, varName, count, labelPrefix) {
+	return {
+		id,
+		type: 'template',
+		name,
+		presetId,
+		templateVariableName: varName,
+		templateValues: Array.from({ length: count }, (_, i) => ({ name: `${labelPrefix} ${i + 1}`, value: i + 1 })),
+	}
+}
+
+// Returns the preset definitions (keyed by id) and the section structure that references them,
+// as expected by setPresetDefinitions(structure, presets) in @companion-module/base 2.x.
 export function setPresets(self) {
 	const presets = {}
 	const structure = []
 
+	addTemplatePreset(presets, 'select_camera', {
+		name: 'Select camera by camera number',
+		labelPrefix: CAMERA_LABEL,
+		textPrefix: 'Select\\n',
+		bgcolor: colorBlack,
+		varName: 'cam',
+		actionId: 'selectCamera',
+		actionOptions: (v) => ({ camera: v }),
+		feedbackId: 'cameraSelected',
+		feedbackOptions: (v) => ({ camera: v }),
+		feedbackBg: colorOrange,
+	})
 	structure.push({
 		id: 'camera',
 		name: 'Select Camera',
-		definitions: addSelectPresets(presets, {
-			idPrefix: 'camera',
-			count: self.product.numberOfCameras,
-			labelPrefix: CAMERA_LABEL,
-			name: 'Select camera by camera number',
-			textPrefix: 'Select\\n',
-			bgcolor: colorBlack,
-			actionId: 'selectCamera',
-			actionOptions: (n) => ({ camera: n }),
-			feedbackId: 'cameraSelected',
-			feedbackOptions: (n) => ({ camera: n }),
-			feedbackBg: colorOrange,
-		}),
+		definitions: [
+			templateGroup(
+				'camera_group',
+				'Select Camera',
+				'select_camera',
+				'cam',
+				self.product.numberOfCameras,
+				CAMERA_LABEL,
+			),
+		],
 	})
 
+	addTemplatePreset(presets, 'select_group', {
+		name: 'Select camera group',
+		labelPrefix: GROUP_LABEL,
+		textPrefix: 'Select\\n',
+		bgcolor: colorBlue,
+		varName: 'grp',
+		actionId: 'selectGroup',
+		actionOptions: (v) => ({ group: v }),
+		feedbackId: 'groupSelected',
+		feedbackOptions: (v) => ({ group: v }),
+		feedbackBg: colorGreen,
+	})
 	structure.push({
 		id: 'group',
 		name: 'Select Group',
-		definitions: addSelectPresets(presets, {
-			idPrefix: 'group',
-			count: self.product.numberOfGroups,
-			labelPrefix: GROUP_LABEL,
-			name: 'Select camera group',
-			textPrefix: 'Select\\n',
-			bgcolor: colorBlue,
-			actionId: 'selectGroup',
-			actionOptions: (n) => ({ group: n }),
-			feedbackId: 'groupSelected',
-			feedbackOptions: (n) => ({ group: n }),
-			feedbackBg: colorGreen,
-		}),
+		definitions: [
+			templateGroup('group_group', 'Select Group', 'select_group', 'grp', self.product.numberOfGroups, GROUP_LABEL),
+		],
 	})
 
+	addTemplatePreset(presets, 'select_port', {
+		name: 'Select camera port (in a group)',
+		labelPrefix: PORT_LABEL,
+		textPrefix: 'Select\\n',
+		bgcolor: colorBlack,
+		varName: 'prt',
+		actionId: 'selectPort',
+		actionOptions: (v) => ({ port: v }),
+		feedbackId: 'portSelected',
+		feedbackOptions: (v) => ({ port: v }),
+		feedbackBg: colorOrange,
+	})
 	structure.push({
 		id: 'port',
 		name: 'Select Port',
-		definitions: addSelectPresets(presets, {
-			idPrefix: 'port',
-			count: self.product.numberOfPorts,
-			labelPrefix: PORT_LABEL,
-			name: 'Select camera port (in a group)',
-			textPrefix: 'Select\\n',
-			bgcolor: colorBlack,
-			actionId: 'selectPort',
-			actionOptions: (n) => ({ port: n }),
-			feedbackId: 'portSelected',
-			feedbackOptions: (n) => ({ port: n }),
-			feedbackBg: colorOrange,
-		}),
+		definitions: [
+			templateGroup('port_group', 'Select Port', 'select_port', 'prt', self.product.numberOfPorts, PORT_LABEL),
+		],
 	})
 
+	// Select by group and port — a single fixed button, referenced directly.
 	presets['group_port'] = {
 		type: 'simple',
 		name: 'Select camera by group and port',
@@ -130,37 +143,38 @@ export function setPresets(self) {
 	structure.push({ id: 'group_port', name: 'Select Camera by Group and Port', definitions: ['group_port'] })
 
 	if (self.product.presetMemory) {
+		addTemplatePreset(presets, 'preset_memory', {
+			name: 'Recall preset memory',
+			labelPrefix: PRESET_LABEL,
+			textPrefix: 'Recall\\n',
+			bgcolor: colorBlack,
+			varName: 'pm',
+			actionId: 'presetMemory',
+			actionOptions: (v) => ({ preset: v }),
+			feedbackId: 'presetSelected',
+			feedbackOptions: (v) => ({ pmem: v }),
+			feedbackBg: colorGrey,
+		})
 		structure.push({
 			id: 'pmem',
 			name: 'Preset Memory (PMEM)',
-			definitions: addSelectPresets(presets, {
-				idPrefix: 'pmem',
-				count: self.product.numberOfPresets,
-				labelPrefix: PRESET_LABEL,
-				name: 'Recall preset memory',
-				textPrefix: 'Recall\\n',
-				bgcolor: colorBlack,
-				actionId: 'presetMemory',
-				actionOptions: (n) => ({ preset: n }),
-				feedbackId: 'presetSelected',
-				feedbackOptions: (n) => ({ pmem: n }),
-				feedbackBg: colorGrey,
-			}),
+			definitions: [
+				templateGroup('pmem_group', 'Recall PMEM', 'preset_memory', 'pm', self.product.numberOfPresets, PRESET_LABEL),
+			],
 		})
 	}
 
 	if (self.product.tracingMemory) {
-		const tmemIds = addSelectPresets(presets, {
-			idPrefix: 'tmem',
-			count: self.product.numberOfTracing,
+		addTemplatePreset(presets, 'tracing_memory', {
+			name: 'Recall tracing memory (standby)',
 			labelPrefix: TRACING_LABEL,
-			name: (label) => `${label} Standby`,
 			textPrefix: 'Standby\\n',
 			bgcolor: colorBlack,
+			varName: 'tm',
 			actionId: 'tracingMemory',
-			actionOptions: (n) => ({ opt: '02', trace: n }),
+			actionOptions: (v) => ({ opt: '02', trace: v }),
 			feedbackId: 'traceSelected',
-			feedbackOptions: (n) => ({ tmem: n }),
+			feedbackOptions: (v) => ({ tmem: v }),
 			feedbackBg: colorGrey,
 		})
 
@@ -192,7 +206,10 @@ export function setPresets(self) {
 		structure.push({
 			id: 'tmem',
 			name: 'Tracing Memory (TMEM)',
-			definitions: [...tmemIds, 'tmem_play', 'tmem_stop'],
+			definitions: [
+				templateGroup('tmem_group', 'Standby', 'tracing_memory', 'tm', self.product.numberOfTracing, TRACING_LABEL),
+				{ id: 'tmem_controls', type: 'simple', name: 'Play / Stop', presets: ['tmem_play', 'tmem_stop'] },
+			],
 		})
 	}
 
