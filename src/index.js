@@ -340,7 +340,8 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 	// #### Instance Presets ####
 	// ##########################
 	init_presets() {
-		this.setPresetDefinitions(setPresets(this))
+		const { presets, structure } = setPresets(this)
+		this.setPresetDefinitions(structure, presets)
 	}
 }
 
