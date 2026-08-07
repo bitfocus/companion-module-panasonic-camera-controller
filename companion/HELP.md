@@ -2,7 +2,7 @@ Panasonic Remote Camera Controllers
 
 _This Module supports the following Panasonic Remote Camera controllers_
 
-AW-RP50, AW-RP60, AW-RP120, AW-RP150
+AW-RP50, AW-RP60, AW-RP120, AW-RP150, AW-RP200
 
 ## Actions
 

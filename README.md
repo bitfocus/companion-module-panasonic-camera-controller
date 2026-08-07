@@ -45,3 +45,10 @@ See HELP.md and LICENSE
 **V2.1.1**
 
 - Fixed bugs in feedback init procedure and config validation
+
+**V2.2.0**
+
+- Upgrade to module-base v2.1.2
+- Add AW-RP200 controller
+- Fix connection handling
+- Allow expressions and use of variables for actions, feedbacks and presets
