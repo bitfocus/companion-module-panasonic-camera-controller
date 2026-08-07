@@ -7,18 +7,22 @@ import UpgradeScripts from './upgrades.js'
 import { setVariables, checkVariables } from './vars.js'
 import { ConfigFields } from './config.js'
 
-// fetch (undici) reports every network-layer failure as `error.name === 'TypeError'`;
-// only `error.cause.code` reveals what actually happened. These codes mean the request
-// never reached the controller (wrong address, offline, no route, connect timeout).
-const UNREACHABLE_CODES = new Set([
-	'ECONNREFUSED',
-	'ENOTFOUND',
-	'EAI_AGAIN',
-	'EHOSTUNREACH',
-	'ENETUNREACH',
-	'ETIMEDOUT',
-	'UND_ERR_CONNECT_TIMEOUT',
-])
+// fetch (undici) reports every network-layer failure as `error.name === 'TypeError'`; only
+// error.cause reveals what happened. A working RP60/120/150 never returns a real HTTP response:
+// it accepts the TCP connection and closes it right after the status line, which surfaces as one
+// of these "connected, then closed" signatures. Everything else (connection refused, host down/
+// unreachable, no route, connect timeout, DNS failure — the exact code is platform-dependent)
+// means we never reached the controller, so we treat the reachable set as the allowlist and
+// default the rest to a connection failure.
+const REACHED_AFTER_CONNECT =
+	/UND_ERR_SOCKET|ECONNRESET|ECONNABORTED|EPIPE|other side closed|socket hang ?up|terminated/i
+
+// A compact reason string from a fetch TypeError, for classification and logging.
+function fetchErrorReason(error) {
+	return [error.cause?.code, error.cause?.errors?.[0]?.code, error.cause?.message, error.message]
+		.filter(Boolean)
+		.join(' ')
+}
 
 // Retry interval while the controller is unreachable, instead of hammering it every polldelay.
 const RECONNECT_DELAY = 5000
@@ -42,17 +46,15 @@ export function pollErrorToStatus(error) {
 		return { status: InstanceStatus.ConnectionFailure, message: 'Timeout — check connection to the controller' }
 	}
 	if (error.name === 'TypeError') {
+		const reason = fetchErrorReason(error)
+		// Reached the device, but it closed the connection — expected for the RP60/120/150.
+		if (REACHED_AFTER_CONNECT.test(reason)) return { status: InstanceStatus.Ok }
+		// Any other network error means the controller was not reachable.
 		const code = error.cause?.code ?? error.cause?.errors?.[0]?.code
-		if (UNREACHABLE_CODES.has(code)) {
-			return {
-				status: InstanceStatus.ConnectionFailure,
-				message: `Cannot reach controller (${code}) — check IP address, port and network`,
-			}
+		return {
+			status: InstanceStatus.ConnectionFailure,
+			message: `Cannot reach controller${code ? ` (${code})` : ''} — check IP address, port and network`,
 		}
-		// Reached the device but it closed the connection after a partial response. This is the
-		// expected behaviour of the RP60/RP120/RP150, which never reply to commands — so the
-		// connection is alive. Bias towards "reached" unless we have a definite unreachable code.
-		return { status: InstanceStatus.Ok }
 	}
 	if (error.httpStatus === 401 || error.httpStatus === 403) {
 		return { status: InstanceStatus.AuthenticationFailure, message: 'Controller rejected the request' }
@@ -180,6 +182,11 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 				this.log('warn', error.message)
 			} else {
 				this.busyRetries = 0
+				// fetch collapses all network errors to TypeError; log the underlying reason so the
+				// reachable-vs-unreachable classification can be checked and tuned.
+				if (error.name === 'TypeError') {
+					this.log('debug', `fetch failed: ${fetchErrorReason(error)}`)
+				}
 				const result = pollErrorToStatus(error)
 				if (result) {
 					this.updateStatus(result.status, result.message)
