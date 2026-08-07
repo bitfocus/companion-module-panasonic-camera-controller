@@ -10,6 +10,7 @@ function normalizeNumericOptions(_context, props) {
 	const fix = (items) => {
 		const changed = []
 		for (const item of items) {
+			if (!item.options) continue
 			let dirty = false
 			for (const id of ids) {
 				const o = item.options[id]
@@ -36,7 +37,7 @@ function normalizeNumericOptions(_context, props) {
 function backfillTracingTrace(_context, props) {
 	const changed = []
 	for (const action of props.actions) {
-		if (action.actionId === 'tracingMemory' && action.options.trace === undefined) {
+		if (action.actionId === 'tracingMemory' && action.options && action.options.trace === undefined) {
 			action.options.trace = { isExpression: false, value: 1 }
 			changed.push(action)
 		}
