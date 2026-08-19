@@ -42,6 +42,29 @@ export const ConfigFields = [
 	},
 	{
 		type: 'static-text',
+		id: 'authInfo',
+		width: 12,
+		label: 'Authentication',
+		value:
+			'Some controllers (e.g. the AW-RP200) may require user authentication.<br />' +
+			'Leave the username empty if user authentication is disabled on your controller.',
+	},
+	{
+		type: 'textinput',
+		id: 'username',
+		label: 'Username',
+		width: 6,
+		default: '',
+	},
+	{
+		type: 'secret-text',
+		id: 'password',
+		label: 'Password',
+		width: 6,
+		default: '',
+	},
+	{
+		type: 'static-text',
 		id: 'space2',
 		width: 12,
 		label: '',

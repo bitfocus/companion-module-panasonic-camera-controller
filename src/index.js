@@ -6,6 +6,7 @@ import { setPresets } from './presets.js'
 import UpgradeScripts from './upgrades.js'
 import { setVariables, checkVariables } from './vars.js'
 import { ConfigFields } from './config.js'
+import { HttpAuth } from './auth.js'
 
 // fetch (undici) reports every network-layer failure as `error.name === 'TypeError'`; only
 // error.cause reveals what happened. A working RP60/120/150 never returns a real HTTP response:
@@ -39,8 +40,9 @@ function deviceError(kind, message) {
 }
 
 // Map a failed poll to a connection status, or null when we aborted the request
-// ourselves (destroy/configUpdated) and the status is owned elsewhere.
-export function pollErrorToStatus(error) {
+// ourselves (destroy/configUpdated) and the status is owned elsewhere. `hasCredentials`
+// only selects the wording of the authentication message.
+export function pollErrorToStatus(error, hasCredentials = false) {
 	if (error.name === 'AbortError') return null
 	if (error.name === 'TimeoutError') {
 		return { status: InstanceStatus.ConnectionFailure, message: 'Timeout — check connection to the controller' }
@@ -57,7 +59,12 @@ export function pollErrorToStatus(error) {
 		}
 	}
 	if (error.httpStatus === 401 || error.httpStatus === 403) {
-		return { status: InstanceStatus.AuthenticationFailure, message: 'Controller rejected the request' }
+		return {
+			status: InstanceStatus.AuthenticationFailure,
+			message: hasCredentials
+				? 'Authentication failed — check username and password'
+				: 'Controller requires authentication — enter username and password in the connection config',
+		}
 	}
 	if (error.httpStatus) {
 		return { status: InstanceStatus.ConnectionFailure, message: error.message }
@@ -74,7 +81,7 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 		this.busyRetries = 0
 	}
 
-	async init(config) {
+	async init(config, isFirstInit, secrets) {
 		this.data = {
 			camera: null,
 			group: null,
@@ -84,6 +91,10 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 		}
 
 		this.config = config
+
+		// The password lives in the secrets store, not in config. Both are undefined for
+		// connections created before authentication support existed, which means no auth.
+		this.auth = new HttpAuth(config.username, secrets?.password)
 
 		this.product = initProduct(this.config.model)
 
@@ -116,13 +127,13 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 		this.updateStatus(InstanceStatus.Disconnected)
 	}
 
-	async configUpdated(config) {
+	async configUpdated(config, secrets) {
 		this.controller.abort()
 		clearTimeout(this.pollID)
 		this.pollID = null
 		this.updateStatus(InstanceStatus.Disconnected, 'Config changed')
 
-		this.init(config)
+		this.init(config, false, secrets)
 	}
 
 	async sendCommand(cmd) {
@@ -187,7 +198,7 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 				if (error.name === 'TypeError') {
 					this.log('debug', `fetch failed: ${fetchErrorReason(error)}`)
 				}
-				const result = pollErrorToStatus(error)
+				const result = pollErrorToStatus(error, this.auth.enabled)
 				if (result) {
 					this.updateStatus(result.status, result.message)
 				}
@@ -198,8 +209,12 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 					queue.length = 0
 				}
 
-				// Back off instead of hammering an unreachable controller every polldelay.
-				if (result?.status === InstanceStatus.ConnectionFailure) {
+				// Back off instead of hammering an unreachable controller — or one that keeps
+				// rejecting our credentials — every polldelay.
+				if (
+					result?.status === InstanceStatus.ConnectionFailure ||
+					result?.status === InstanceStatus.AuthenticationFailure
+				) {
 					retryDelay = RECONNECT_DELAY
 				}
 			}
@@ -223,10 +238,11 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 	}
 
 	async getAPI(cmd, options) {
-		const url = `http://${this.config.host}:${this.config.port}/cgi-bin/aw_cam?cmd=${cmd}&res=1`
+		const path = `/cgi-bin/aw_cam?cmd=${cmd}&res=1`
+		const url = `http://${this.config.host}:${this.config.port}${path}`
 		this.log('debug', 'GET ' + url)
 
-		const response = await fetch(url, options)
+		const response = await this.fetchWithAuth(url, path, options)
 
 		// The controller signals protocol errors differently per model: the RP50 uses HTTP
 		// status codes (400 = unsupported command / value out of range, 500 = busy), while the
@@ -253,6 +269,38 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 		}
 
 		this.parseData(body)
+	}
+
+	// fetch does not do HTTP authentication, so answer a 401 challenge ourselves and repeat the
+	// request once. The negotiated scheme is cached in HttpAuth and sent preemptively afterwards,
+	// so this costs one extra round trip per connection and not one per poll.
+	async fetchWithAuth(url, path, options) {
+		const headers = {}
+		const preemptive = this.auth.authorization('GET', path)
+		if (preemptive) headers.authorization = preemptive
+
+		const response = await fetch(url, { ...options, headers })
+		if (response.status !== 401) return response
+
+		const challenge = response.headers.get('www-authenticate')
+		this.log('debug', `HTTP 401, challenge: ${challenge ?? '(none)'}`)
+
+		// Nothing to answer with, or a scheme we do not speak: report the 401 as it is.
+		if (!this.auth.handleChallenge(challenge)) return response
+
+		const authorization = this.auth.authorization('GET', path)
+		if (!authorization) return response
+
+		// Free the connection before reusing it; the body of a 401 is of no interest.
+		await response.body?.cancel().catch(() => {})
+
+		const retry = await fetch(url, { ...options, headers: { authorization } })
+
+		// Still rejected: the credentials are wrong (or the device changed its mind about the
+		// scheme). Drop the cache so the next attempt negotiates from scratch.
+		if (retry.status === 401) this.auth.reset()
+
+		return retry
 	}
 
 	parseData(cmd) {
