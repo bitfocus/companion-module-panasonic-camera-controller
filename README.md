@@ -52,3 +52,8 @@ See HELP.md and LICENSE
 - Add AW-RP200 controller
 - Fix connection handling
 - Allow expressions and use of variables for actions, feedbacks and presets
+
+**V2.2.1**
+
+- Add support for controllers requiring user authentication
+- More precise connection status messages for authentication problems
