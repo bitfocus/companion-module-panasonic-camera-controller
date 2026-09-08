@@ -41,6 +41,23 @@ export const ConfigFields = [
 		asInteger: true,
 	},
 	{
+		type: 'textinput',
+		id: 'username',
+		label: 'Username (AW-RP200)',
+		width: 6,
+		default: 'admin',
+		isVisible: (config) => config.model === 'AW-RP200',
+	},
+	{
+		type: 'textinput',
+		id: 'password',
+		label: 'Password (AW-RP200)',
+		width: 6,
+		default: '',
+		isPassword: true,
+		isVisible: (config) => config.model === 'AW-RP200',
+	},
+	{
 		type: 'static-text',
 		id: 'space2',
 		width: 12,

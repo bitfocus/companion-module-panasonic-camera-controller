@@ -4,6 +4,10 @@ _This Module supports the following Panasonic Remote Camera controllers_
 
 AW-RP50, AW-RP60, AW-RP120, AW-RP150, AW-RP200
 
+## Connection
+
+The AW-RP200 requires HTTP Digest authentication. Select AW-RP200 and enter the controller's admin username and password in the connection settings. Credentials are sent only in the Digest authorization response and are not included in module logs.
+
 ## Actions
 
 The actions are separated into the following categories
@@ -17,8 +21,8 @@ The actions are separated into the following categories
 
 **Recall Memory**
 
-- Preset Memory (Supported by: AW-RP60, AW-RP120, AW-RP150)
-- Tracing Memory Standby/Start/Stop (Supported by: AW-RP120, AW-RP150)
+- Preset Memory (Supported by: AW-RP60, AW-RP120, AW-RP150, AW-RP200)
+- Tracing Memory Standby/Start/Stop (Supported by: AW-RP120, AW-RP150, AW-RP200)
 
 ## Variables
 
@@ -40,4 +44,4 @@ The following feedbacks are available for use in this module
 - Last Preset Memory selected
 - Last Tracing Memory selected
 
-For additional actions, please raise a feature request on [GitHub](https://github.com/bitfocus/companion-panasonic-camera-controller/).
+For additional actions, please raise a feature request on [GitHub](https://github.com/bitfocus/companion-module-panasonic-camera-controller/).

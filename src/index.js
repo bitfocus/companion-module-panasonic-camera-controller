@@ -6,6 +6,7 @@ import { setPresets } from './presets.js'
 import UpgradeScripts from './upgrades.js'
 import { setVariables, checkVariables } from './vars.js'
 import { ConfigFields } from './config.js'
+import { DigestSession } from './digest-auth.js'
 
 // fetch (undici) reports every network-layer failure as `error.name === 'TypeError'`; only
 // error.cause reveals what happened. A working RP60/120/150 never returns a real HTTP response:
@@ -97,6 +98,7 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 		this.queue = []
 
 		this.controller = new AbortController()
+		this.digestSession = new DigestSession()
 		this.pollActive = false
 		this.busyRetries = 0
 
@@ -226,7 +228,16 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 		const url = `http://${this.config.host}:${this.config.port}/cgi-bin/aw_cam?cmd=${cmd}&res=1`
 		this.log('debug', 'GET ' + url)
 
-		const response = await fetch(url, options)
+		const response =
+			this.config.model === 'AW-RP200'
+				? await this.digestSession.fetch(
+						fetch,
+						url,
+						options,
+						this.config.username || 'admin',
+						this.config.password || '',
+					)
+				: await fetch(url, options)
 
 		// The controller signals protocol errors differently per model: the RP50 uses HTTP
 		// status codes (400 = unsupported command / value out of range, 500 = busy), while the
