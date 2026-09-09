@@ -1,6 +1,6 @@
 import { CAMERA_LABEL, GROUP_LABEL, PORT_LABEL } from './common.js'
 
-// Zero-pad to three digits for the preset/tracing memory commands (e.g. XPM:01:001).
+// Zero-pad to three digits for the preset/tracing/macro memory commands (e.g. XPM:01:001).
 const pad3 = (n) => String(n).padStart(3, '0')
 
 // A numeric option field. Being a `number` field, the host coerces expression/variable
@@ -111,6 +111,43 @@ export function setActions(self) {
 						break
 					case '00': // Stop
 						await self.sendCommand(`XTM:${action.options.opt}:${pad3(self.data.tmem || 1)}`)
+						break
+				}
+			},
+		}
+	}
+
+	if (self.product.macroMemory) {
+		actions.macro = {
+			name: 'Play Macro (MACRO)',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Operation',
+					id: 'opt',
+					default: '01',
+					// Referenced by the macro field's isVisibleExpression, so it must not itself be an expression.
+					disableAutoExpression: true,
+					choices: [
+						{ id: '01', label: 'Play' },
+						{ id: '00', label: 'Stop' },
+					],
+				},
+				{
+					...numberField('Macro', 'macro', self.product.numberOfMacros, 'MACRO number'),
+					isVisibleExpression: '$(options:opt) == "01"',
+				},
+			],
+			callback: async (action) => {
+				switch (action.options.opt) {
+					case '01': // Play
+						await self.sendCommand(`XMC:01:${pad3(action.options.macro)}`)
+						self.data.macro = action.options.macro
+						break
+					case '00': // Stop
+						// The stop command always carries 000; the macro number is not part of it.
+						await self.sendCommand('XMC:00:000')
+						self.data.macro = null
 						break
 				}
 			},

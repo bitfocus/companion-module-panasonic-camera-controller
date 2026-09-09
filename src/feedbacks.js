@@ -88,5 +88,17 @@ export function setFeedbacks(self) {
 		})
 	}
 
+	if (self.product.macroMemory) {
+		feedbacks.macroSelected = makeSelectedFeedback(self, {
+			name: 'Macro playing',
+			description: 'Indicates if the selected MACRO was the last one started (until stopped)',
+			label: 'Macro',
+			id: 'macro',
+			max: self.product.numberOfMacros,
+			noun: 'MACRO number',
+			bgcolor: colorGreen,
+		})
+	}
+
 	return feedbacks
 }

@@ -20,6 +20,10 @@ The actions are separated into the following categories
 - Preset Memory (Supported by: AW-RP60, AW-RP120, AW-RP150)
 - Tracing Memory Standby/Start/Stop (Supported by: AW-RP120, AW-RP150)
 
+**Macro**
+
+- Macro Play/Stop (Supported by: AW-RP200)
+
 ## Variables
 
 The following variables are available for use in this module
@@ -29,6 +33,7 @@ The following variables are available for use in this module
 - Port
 - Last Preset Memory selected
 - Last Tracing Memory selected
+- Playing Macro
 
 ## Feedbacks
 
@@ -39,5 +44,6 @@ The following feedbacks are available for use in this module
 - Port Selected
 - Last Preset Memory selected
 - Last Tracing Memory selected
+- Macro playing
 
 For additional actions, please raise a feature request on [GitHub](https://github.com/bitfocus/companion-panasonic-camera-controller/).
