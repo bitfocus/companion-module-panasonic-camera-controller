@@ -11,4 +11,11 @@ export default [
 			sourceType: 'module',
 		},
 	},
+	{
+		// Tests are not part of the published package, so they may import devDependencies.
+		files: ['**/__tests__/**'],
+		rules: {
+			'n/no-unpublished-import': 'off',
+		},
+	},
 ]

@@ -1,173 +1,366 @@
-import { createHash, randomBytes } from 'node:crypto'
+import { createHash, getHashes, randomBytes } from 'node:crypto'
 
-// HTTP authentication for the controller's CGI endpoint.
+// HTTP authentication for controllers that require a login on their CGI. The AW-RP200 is the one
+// that does: its user authentication cannot be switched off, and only the admin account's name and
+// password can be changed (issue #64). The RP50/60/120/150 answer everything without a login, so a
+// connection to one of those never sends a credential and never pays for one.
 //
-// node's fetch (undici) has no support for HTTP authentication at all: credentials embedded in
-// the URL are rejected outright and a 401 challenge is never answered. Panasonic controllers use
-// Digest (the default on AW devices) or Basic, depending on model and firmware, so we implement
-// both and pick the scheme from the WWW-Authenticate header of the first 401 we see.
+// The controller decides the scheme, not the user — Panasonic AW devices offer Digest, Basic, or
+// either, with Digest the factory default — so there is no answer a config field could hold that
+// the challenge does not already give us. Both headers are built here because fetch (undici) does
+// neither: credentials embedded in the URL are rejected outright, and a 401 is never answered.
 //
-// The challenge is answered once and the result cached: every following request carries the
-// Authorization header preemptively, so authentication costs one extra round trip per connection
-// and not one per poll. The cache is dropped when the device rejects our credentials or expires
-// the nonce (stale), which makes the next request challenge again.
+//   Digest: WWW-Authenticate: Digest realm="…", nonce="<hex>", qop="auth"
+//   Basic:  WWW-Authenticate: Basic realm="…"
+//
+// This file is kept byte-for-byte diffable against src/auth.js in companion-module-panasonic-
+// cameras, where the same problem is solved; apart from this comment the two are identical, so a
+// fix in either can be copied across whole. That is also why the comments below are phrased for
+// that module's traffic — its cameras, its request rates, its got transport. The mechanics they
+// describe are the same here; only the transport differs, and it is passed in as `send`.
 
-// Digest supports several hash algorithms; map the ones we can compute to their node names.
-// Anything else (or a scheme we don't speak) means we cannot answer the challenge.
-function hashName(algorithm) {
-	const base = String(algorithm ?? 'MD5')
-		.toUpperCase()
-		.replace(/-SESS$/, '')
-	switch (base) {
-		case 'MD5':
-			return 'md5'
-		case 'SHA-256':
-			return 'sha256'
-		case 'SHA-512-256':
-			return 'sha512-256'
-		default:
-			return null
-	}
+// Which hashes this Node build can actually compute. An algorithm we cannot answer has to be
+// reported as such: sending a response hashed the wrong way looks to the camera like a bad password.
+const HASHES = {
+	MD5: 'md5',
+	'MD5-SESS': 'md5',
+	'SHA-256': 'sha256',
+	'SHA-256-SESS': 'sha256',
+	'SHA-512-256': 'sha512-256',
+	'SHA-512-256-SESS': 'sha512-256',
 }
 
-// `key=value` / `key="quoted value"` pairs of a single challenge, lowercased keys.
-function parseParams(text) {
-	const params = {}
-	const re = /([A-Za-z0-9_-]+)\s*=\s*(?:"((?:[^"\\]|\\.)*)"|([^\s,]*))/g
-	let m
-	while ((m = re.exec(text)) !== null) {
-		params[m[1].toLowerCase()] = (m[2] ?? m[3] ?? '').replace(/\\(.)/g, '$1')
-	}
-	return params
+// Which of those this OpenSSL build actually carries — sha512-256 is missing from some. Resolved on
+// first use rather than at import, so nothing runs while the module is merely being loaded.
+let available
+
+const hashFor = (algorithm = 'MD5') => {
+	const node = HASHES[String(algorithm).toUpperCase()]
+	if (!node) return null
+
+	available ??= new Set(getHashes())
+	return available.has(node) ? node : null
 }
 
-// A WWW-Authenticate header may offer several schemes in one line ('Digest ..., Basic realm="x"').
-// Split on the comma that precedes a known scheme token, then prefer Digest over Basic.
-export function parseChallenge(header) {
-	if (!header) return null
+// A WWW-Authenticate value can carry several challenges, and they are separated by the same comma
+// that separates one challenge's parameters — "Digest realm=\"x\", nonce=\"y\", Basic realm=\"x\"".
+// So a split(',') cannot work. Read tokens instead: a token followed by "=" is a parameter of the
+// challenge in hand, a token that is not begins a new one.
+export function parseAuthChallenges(header) {
+	if (typeof header !== 'string') return []
 
-	const parts = String(header).split(/,\s*(?=(?:Digest|Basic|Bearer|Negotiate|NTLM)\s)/i)
-	let basic = null
+	const challenges = []
+	let i = 0
 
-	for (const part of parts) {
-		const m = /^\s*([A-Za-z0-9_-]+)\s*(.*)$/s.exec(part)
-		if (!m) continue
-		const scheme = m[1].toLowerCase()
-		if (scheme === 'digest') return { scheme, params: parseParams(m[2]) }
-		if (scheme === 'basic' && !basic) basic = { scheme, params: parseParams(m[2]) }
+	const skipSpace = () => {
+		while (i < header.length && /[\s,]/.test(header[i])) i++
 	}
 
-	return basic
-}
-
-export class HttpAuth {
-	constructor(username, password) {
-		this.username = username ?? ''
-		this.password = password ?? ''
-		this.state = null
+	const skipBlanks = () => {
+		while (i < header.length && /\s/.test(header[i])) i++
 	}
 
-	// Without a username there is nothing to send; an empty password is legitimate.
-	get enabled() {
-		return this.username !== ''
+	const readToken = () => {
+		const start = i
+		while (i < header.length && /[^\s,=]/.test(header[i])) i++
+		return header.slice(start, i)
 	}
 
-	// Forget the negotiated scheme/nonce, so the next request challenges again.
-	reset() {
-		this.state = null
-	}
+	const readValue = () => {
+		if (header[i] !== '"') return readToken()
 
-	// Accept a challenge for later use. Returns false when we cannot answer it, so the caller
-	// can report the failure instead of retrying a request that is bound to fail again.
-	handleChallenge(header) {
-		if (!this.enabled) return false
-
-		const challenge = parseChallenge(header)
-		if (!challenge) return false
-
-		if (challenge.scheme === 'basic') {
-			this.state = { scheme: 'basic' }
-			return true
+		i++ // opening quote
+		let out = ''
+		while (i < header.length && header[i] !== '"') {
+			// A quoted-string escapes with a backslash, which the value itself must not keep.
+			if (header[i] === '\\' && i + 1 < header.length) i++
+			out += header[i++]
 		}
-
-		const hash = hashName(challenge.params.algorithm)
-		if (!hash) return false
-
-		this.state = {
-			scheme: 'digest',
-			hash,
-			algorithm: challenge.params.algorithm ?? 'MD5',
-			sess: /-sess$/i.test(challenge.params.algorithm ?? ''),
-			realm: challenge.params.realm ?? '',
-			nonce: challenge.params.nonce ?? '',
-			opaque: challenge.params.opaque,
-			qop: this.#selectQop(challenge.params.qop),
-			nc: 0,
-			cnonce: randomBytes(8).toString('hex'),
-		}
-		return true
+		i++ // closing quote
+		return out
 	}
 
-	// The server offers a comma separated list; 'auth' is what we want. 'auth-int' also works
-	// for us because the requests have no body, but only take it when it is the sole offer.
-	#selectQop(qop) {
-		if (!qop) return null
-		const offered = String(qop)
-			.split(',')
-			.map((q) => q.trim().toLowerCase())
-		if (offered.includes('auth')) return 'auth'
-		if (offered.includes('auth-int')) return 'auth-int'
-		return null
-	}
+	while (i < header.length) {
+		skipSpace()
+		const token = readToken()
+		if (!token) break
 
-	// The Authorization header for a request, or null while no challenge has been seen yet.
-	// `uri` must be the request target exactly as sent (path including query), not the full URL.
-	authorization(method, uri) {
-		if (!this.enabled || !this.state) return null
-
-		if (this.state.scheme === 'basic') {
-			return 'Basic ' + Buffer.from(`${this.username}:${this.password}`).toString('base64')
-		}
-
-		return this.#digest(method, uri)
-	}
-
-	#hash(value) {
-		return createHash(this.state.hash).update(value).digest('hex')
-	}
-
-	#digest(method, uri) {
-		const s = this.state
-
-		let ha1 = this.#hash(`${this.username}:${s.realm}:${this.password}`)
-		if (s.sess) ha1 = this.#hash(`${ha1}:${s.nonce}:${s.cnonce}`)
-
-		// Requests to the controller never carry a body, so the entity hash of auth-int is the
-		// hash of the empty string.
-		const ha2 = s.qop === 'auth-int' ? this.#hash(`${method}:${uri}:${this.#hash('')}`) : this.#hash(`${method}:${uri}`)
-
-		const fields = [
-			`username="${this.username}"`,
-			`realm="${s.realm}"`,
-			`nonce="${s.nonce}"`,
-			`uri="${uri}"`,
-			`algorithm=${s.algorithm}`,
-		]
-
-		let response
-		if (s.qop) {
-			s.nc++
-			const nc = s.nc.toString(16).padStart(8, '0')
-			response = this.#hash(`${ha1}:${s.nonce}:${nc}:${s.cnonce}:${s.qop}:${ha2}`)
-			fields.push(`qop=${s.qop}`, `nc=${nc}`, `cnonce="${s.cnonce}"`)
+		skipSpace()
+		if (header[i] === '=') {
+			// A parameter, so it belongs to the challenge already open. One with no challenge before
+			// it is malformed; drop it rather than invent a scheme for it.
+			i++
+			skipBlanks() // RFC 7230 allows `nonce = "abc"`; without this the value reads as a new scheme
+			const value = readValue()
+			if (challenges.length) challenges[challenges.length - 1].params[token.toLowerCase()] = value
 		} else {
-			// Legacy RFC 2069 style, still used by some devices.
-			response = this.#hash(`${ha1}:${s.nonce}:${ha2}`)
+			challenges.push({ scheme: token.toLowerCase(), params: {} })
+		}
+	}
+
+	return challenges
+}
+
+// qop may be a list ("auth,auth-int"). auth-int hashes the request body, and every request this
+// module makes is a GET without one, so only plain auth can be answered. A challenge naming neither
+// is the RFC 2069 form, which needs no qop at all.
+const offersQop = (qop) => qop === undefined || qopList(qop).includes('auth')
+
+const qopList = (qop) =>
+	String(qop ?? '')
+		.split(',')
+		.map((v) => v.trim())
+
+// Digest before Basic wherever both are offered: it is the stronger of the two and the camera
+// accepts either. A challenge we cannot answer is not chosen — neither one hashed a way this build
+// cannot compute, nor one asking for auth-int only, which would otherwise be answered with the
+// qop-less formula it cannot satisfy and would crowd out a Basic challenge that would have worked.
+export function chooseChallenge(challenges) {
+	const usable = challenges.filter(
+		(c) =>
+			c.scheme === 'basic' ||
+			(c.scheme === 'digest' && hashFor(c.params.algorithm) !== null && offersQop(c.params.qop)),
+	)
+
+	return usable.find((c) => c.scheme === 'digest') ?? usable.find((c) => c.scheme === 'basic') ?? null
+}
+
+// A quoted-string carries `"` and `\` escaped, which is how the parser above reads them back. Emitting
+// them raw produces a header no server can parse — `realm="say "hi""` — and authentication then fails
+// for a reason nothing in the exchange names.
+const quote = (value) => `"${String(value).replace(/(["\\])/g, '\\$1')}"`
+
+export function buildBasicAuthorization({ username, password }) {
+	return 'Basic ' + Buffer.from(`${username}:${password}`, 'utf8').toString('base64')
+}
+
+// RFC 7616. `uri` is the request-target as it goes on the wire — path *and* query, still
+// percent-encoded. This module puts the camera command in the query ("aw_ptz?cmd=%23O&res=1"), so
+// hashing a path alone, or a decoded one, yields a response the camera rejects for ever.
+export function buildDigestAuthorization(challenge, { username, password, method, uri, nc, cnonce }) {
+	const { realm = '', nonce = '', qop, opaque, algorithm } = challenge.params
+
+	const node = hashFor(algorithm)
+	if (!node) return null
+
+	const H = (value) => createHash(node).update(value, 'utf8').digest('hex')
+	const ncHex = nc.toString(16).padStart(8, '0')
+
+	// -sess folds the nonces into HA1, so a session key differs per connection rather than being the
+	// password hash for all time.
+	const sess = /-sess$/i.test(algorithm ?? '')
+	const secret = H(`${username}:${realm}:${password}`)
+	const ha1 = sess ? H(`${secret}:${nonce}:${cnonce}`) : secret
+
+	const useQop = qopList(qop).includes('auth') ? 'auth' : null
+
+	const ha2 = H(`${method}:${uri}`)
+	const response = useQop ? H(`${ha1}:${nonce}:${ncHex}:${cnonce}:${useQop}:${ha2}`) : H(`${ha1}:${nonce}:${ha2}`) // the RFC 2069 form, for a camera that offers no qop
+
+	// Quoting is not cosmetic: servers reject a quoted nc or an unquoted nonce. algorithm, qop and
+	// nc go bare, everything else is a quoted-string.
+	const parts = [
+		`username=${quote(username)}`,
+		`realm=${quote(realm)}`,
+		`nonce=${quote(nonce)}`,
+		`uri=${quote(uri)}`,
+		`response=${quote(response)}`,
+	]
+
+	if (algorithm) parts.push(`algorithm=${algorithm}`) // echoed only when the challenge named one
+	if (useQop) parts.push(`qop=${useQop}`, `nc=${ncHex}`, `cnonce=${quote(cnonce)}`)
+	// A -sess key folds the cnonce into HA1, so the server cannot rebuild it without being told which
+	// one was used. With qop that goes out above; without one it would otherwise be lost.
+	else if (sess) parts.push(`cnonce=${quote(cnonce)}`)
+	if (opaque !== undefined) parts.push(`opaque=${quote(opaque)}`)
+
+	return 'Digest ' + parts.join(', ')
+}
+
+// One session per connection. It holds the credentials and — once the camera has asked — the
+// challenge to answer every later request with, so the handshake happens once rather than per
+// request. At up to ~20 requests a second, re-handshaking would double the traffic.
+export function createAuthSession({ username = '', password = '' } = {}) {
+	return {
+		username,
+		password,
+		hasCredentials: Boolean(username || password),
+		scheme: 'unknown', // 'unknown' | 'none' | 'basic' | 'digest'
+
+		// Set by the instance once a refusal has hit the connection itself rather than a single command,
+		// which is a distinction only the caller can draw. Nothing clears it: a login only changes when
+		// the connection is rebuilt, and that builds a new session.
+		blocked: false,
+
+		// Whether anything has ever got through on this session. It is what separates "this connection
+		// cannot reach the camera" from "this camera served everything and then guarded one command".
+		ok: false,
+		challenge: null,
+		cnonce: null,
+		nc: 0,
+	}
+}
+
+// Adopting a challenge replaces nonce, cnonce and counter together: nc counts requests against one
+// nonce, and reusing a count the camera has seen is a replay to it.
+export function adoptChallenge(session, challenge, makeCnonce = () => randomBytes(8).toString('hex')) {
+	session.scheme = challenge.scheme
+	session.challenge = challenge
+	session.cnonce = makeCnonce()
+	session.nc = 0
+}
+
+// Builds the header for one request. Synchronous on purpose, and the counter is taken in the same
+// breath as the header is built: put an await between the two and concurrent requests — the poll
+// loop, the image loop, a pressed button — would sign themselves with the same nc.
+export function authHeaders(session, { method = 'GET', uri }) {
+	if (!session?.hasCredentials || !session.challenge) return {}
+
+	const { username, password } = session
+
+	if (session.scheme === 'basic') return { authorization: buildBasicAuthorization({ username, password }) }
+
+	session.nc += 1
+	const authorization = buildDigestAuthorization(session.challenge, {
+		username,
+		password,
+		method,
+		uri,
+		nc: session.nc,
+		cnonce: session.cnonce,
+	})
+
+	return authorization ? { authorization } : {}
+}
+
+const isUnauthorized = (error) => error?.response?.statusCode === 401
+
+// The camera took the login and still said no: the account is real but lacks the rights for this
+// request. Nothing further can be sent that would change that, so it belongs on the same path as a
+// refused login rather than in the generic error handling, which cannot tell whether the refusal met
+// the connection or one command.
+const isForbidden = (error) => error?.response?.statusCode === 403
+
+// Sends one request, and answers a 401 by adopting the challenge and sending it again — once.
+//
+// The retry-once bound is the whole safety property. A camera that keeps saying no is answered by
+// at most one extra request, never a stream of them; at ~20 requests a second an auth layer that
+// retried on its own schedule would be a request storm against a device already refusing.
+//
+// `send` is a parameter so the policy can be exercised without got, a server or an instance.
+export async function requestWithAuth(send, { session, method = 'GET', uri, report = () => {} } = {}) {
+	if (!session) return send({})
+
+	// The challenge this request signs with, taken before anything goes out. Concurrent requests share
+	// one session, so asking afterwards whether the session has a challenge answers a different
+	// question: another request in flight may have adopted one meanwhile, and reading that as "we
+	// offered credentials and they were refused" reports a good password as rejected without this
+	// request ever having sent it.
+	const attempted = session.challenge
+
+	try {
+		const response = await send(authHeaders(session, { method, uri }))
+
+		// First answer of the connection, and the camera never asked: settle on sending nothing, so a
+		// camera without User auth. costs nothing for the life of the connection. Worth reporting even
+		// though nothing is wrong — it is the difference the panel shows between "no login is needed
+		// here" and "nothing has been tried yet".
+		if (session.scheme === 'unknown') {
+			session.scheme = 'none'
+			report({ type: 'none' })
 		}
 
-		fields.push(`response="${response}"`)
-		if (s.opaque !== undefined) fields.push(`opaque="${s.opaque}"`)
+		session.ok = true
+		return response
+	} catch (error) {
+		if (isForbidden(error)) {
+			report({ type: 'forbidden', realm: session.challenge?.params?.realm, scheme: session.scheme })
+			throw error
+		}
 
-		return 'Digest ' + fields.join(', ')
+		if (!isUnauthorized(error)) throw error
+
+		const header = error.response?.headers?.['www-authenticate']
+		const offered = header ? parseAuthChallenges(header) : []
+		const challenge = chooseChallenge(offered)
+
+		// Nothing to answer with is not the same as nothing being asked: an unreadable header means we
+		// have no credentials to offer, while a header we cannot compute is a scheme worth naming.
+		if (!session.hasCredentials) {
+			report({ type: 'credentialsRequired', realm: challenge?.params?.realm, scheme: challenge?.scheme })
+			throw error
+		}
+
+		if (offered.length && !challenge) {
+			report({ type: 'unsupported', offered: offered.map((c) => c.scheme).join(', ') })
+			throw error
+		}
+
+		// This request offered credentials and was refused anyway: either the nonce aged out, or the
+		// password is wrong. Only the first is worth another request.
+		const stale = String(challenge?.params?.stale ?? '').toLowerCase() === 'true'
+
+		if (attempted && !stale) {
+			report({ type: 'rejected', realm: challenge?.params?.realm, scheme: session.scheme })
+			throw error
+		}
+
+		// Adopt only where this request is the one with something to replace: the challenge it attempted
+		// is still the session's (a nonce rotation this request is first to see), or the session carries
+		// none at all (the first 401 of the connection). A challenge another request adopted while this
+		// one was in flight is used as it stands — adopting again would reset the nonce counter, and a
+		// count the camera has already seen is a replay to it. Both halves matter: concurrent requests
+		// meet the first 401 together, and they meet a stale rotation together too.
+		const mine = stale ? session.challenge === attempted : !session.challenge
+
+		if (mine) {
+			if (stale) report({ type: 'stale', realm: challenge.params.realm })
+
+			// Some firmware answers 401 with no challenge at all. Basic needs none, so it is worth the
+			// single retry we allow ourselves.
+			adoptChallenge(session, challenge ?? { scheme: 'basic', params: {} })
+		}
+
+		const headers = authHeaders(session, { method, uri })
+
+		if (!headers.authorization) {
+			report({ type: 'unsupported', offered: challenge?.scheme })
+			throw error
+		}
+
+		try {
+			const response = await send(headers)
+			session.ok = true
+
+			// Reported only once the retry has come back. Announcing the handshake before then names a
+			// login as accepted while the camera is still free to refuse it — and it is free to: the
+			// Admin level guards `initial?cmd=reset` on every model, including one whose "User auth." is
+			// off and whose every other request needs no login at all.
+			if (!stale) {
+				report({
+					type: 'authenticated',
+					scheme: session.scheme,
+					realm: challenge?.params?.realm,
+					algorithm: challenge?.params?.algorithm,
+
+					// What the camera actually named, which is not always what was used: a 401 carrying no
+					// challenge at all is answered with Basic on spec, and reporting that as "the camera
+					// asked for Basic" would put words in its mouth.
+					offered: challenge?.scheme,
+				})
+			}
+
+			return response
+		} catch (retryError) {
+			// The one extra request is spent. A second refusal is reported here rather than left for the
+			// next request to discover, so a wrong password is named the moment it is known.
+			if (isUnauthorized(retryError)) {
+				report({ type: 'rejected', realm: challenge?.params?.realm, scheme: session.scheme })
+			} else if (isForbidden(retryError)) {
+				// The handshake worked and the account is still not allowed to do this.
+				report({ type: 'forbidden', realm: challenge?.params?.realm, scheme: session.scheme })
+			}
+			throw retryError
+		}
 	}
 }

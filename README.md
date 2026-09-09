@@ -55,5 +55,5 @@ See HELP.md and LICENSE
 
 **V2.2.1**
 
-- Add support for controllers requiring user authentication
+- Add support for controllers requiring user authentication (AW-RP200), Basic and Digest
 - More precise connection status messages for authentication problems
