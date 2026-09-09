@@ -6,6 +6,7 @@ import { setPresets } from './presets.js'
 import UpgradeScripts from './upgrades.js'
 import { setVariables, checkVariables } from './vars.js'
 import { ConfigFields } from './config.js'
+import { createAuthSession, requestWithAuth } from './auth.js'
 
 // fetch (undici) reports every network-layer failure as `error.name === 'TypeError'`; only
 // error.cause reveals what happened. A working RP60/120/150 never returns a real HTTP response:
@@ -39,8 +40,9 @@ function deviceError(kind, message) {
 }
 
 // Map a failed poll to a connection status, or null when we aborted the request
-// ourselves (destroy/configUpdated) and the status is owned elsewhere.
-export function pollErrorToStatus(error) {
+// ourselves (destroy/configUpdated) and the status is owned elsewhere. `hasCredentials`
+// only selects the wording of the authentication message.
+export function pollErrorToStatus(error, hasCredentials = false) {
 	if (error.name === 'AbortError') return null
 	if (error.name === 'TimeoutError') {
 		return { status: InstanceStatus.ConnectionFailure, message: 'Timeout — check connection to the controller' }
@@ -56,8 +58,18 @@ export function pollErrorToStatus(error) {
 			message: `Cannot reach controller${code ? ` (${code})` : ''} — check IP address, port and network`,
 		}
 	}
-	if (error.httpStatus === 401 || error.httpStatus === 403) {
-		return { status: InstanceStatus.AuthenticationFailure, message: 'Controller rejected the request' }
+	// Backstop for a refusal that did not come through reportAuthEvent, which normally says it
+	// better because it has the challenge in hand.
+	if (error.httpStatus === 403) {
+		return { status: InstanceStatus.InsufficientPermissions, message: 'Insufficient permissions' }
+	}
+	if (error.httpStatus === 401) {
+		return {
+			status: InstanceStatus.AuthenticationFailure,
+			message: hasCredentials
+				? 'Authentication failed — check username and password'
+				: 'Controller requires authentication — enter username and password in the connection config',
+		}
 	}
 	if (error.httpStatus) {
 		return { status: InstanceStatus.ConnectionFailure, message: error.message }
@@ -72,9 +84,12 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 		this.pollID = null
 		this.pollActive = false
 		this.busyRetries = 0
+
+		this.auth = createAuthSession()
+		this.reportedAuth = new Set()
 	}
 
-	async init(config) {
+	async init(config, isFirstInit, secrets) {
 		this.data = {
 			camera: null,
 			group: null,
@@ -84,6 +99,13 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 		}
 
 		this.config = config
+
+		// One session per connection: it caches the controller's challenge, so the handshake happens
+		// once rather than per request. The password lives in the secrets store, not in config; both
+		// are undefined for connections made before authentication support existed, which reads as no
+		// credentials — and a controller that never asks for one is never sent one either way.
+		this.auth = createAuthSession({ username: config.username, password: secrets?.password })
+		this.reportedAuth = new Set()
 
 		this.product = initProduct(this.config.model)
 
@@ -116,13 +138,13 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 		this.updateStatus(InstanceStatus.Disconnected)
 	}
 
-	async configUpdated(config) {
+	async configUpdated(config, secrets) {
 		this.controller.abort()
 		clearTimeout(this.pollID)
 		this.pollID = null
 		this.updateStatus(InstanceStatus.Disconnected, 'Config changed')
 
-		this.init(config)
+		this.init(config, false, secrets)
 	}
 
 	async sendCommand(cmd) {
@@ -187,8 +209,10 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 				if (error.name === 'TypeError') {
 					this.log('debug', `fetch failed: ${fetchErrorReason(error)}`)
 				}
-				const result = pollErrorToStatus(error)
-				if (result) {
+				// A refusal reportAuthEvent has already named keeps the message it gave it, which is
+				// the better one: it had the challenge in hand.
+				const result = pollErrorToStatus(error, this.auth.hasCredentials)
+				if (result && !error.statusReported) {
 					this.updateStatus(result.status, result.message)
 				}
 
@@ -198,8 +222,13 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 					queue.length = 0
 				}
 
-				// Back off instead of hammering an unreachable controller every polldelay.
-				if (result?.status === InstanceStatus.ConnectionFailure) {
+				// Back off instead of hammering an unreachable controller — or one that keeps
+				// rejecting our credentials — every polldelay.
+				if (
+					result?.status === InstanceStatus.ConnectionFailure ||
+					result?.status === InstanceStatus.AuthenticationFailure ||
+					result?.status === InstanceStatus.InsufficientPermissions
+				) {
 					retryDelay = RECONNECT_DELAY
 				}
 			}
@@ -223,10 +252,11 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 	}
 
 	async getAPI(cmd, options) {
-		const url = `http://${this.config.host}:${this.config.port}/cgi-bin/aw_cam?cmd=${cmd}&res=1`
+		const path = `/cgi-bin/aw_cam?cmd=${cmd}&res=1`
+		const url = `http://${this.config.host}:${this.config.port}${path}`
 		this.log('debug', 'GET ' + url)
 
-		const response = await fetch(url, options)
+		const response = await this.getWithAuth(url, path, options)
 
 		// The controller signals protocol errors differently per model: the RP50 uses HTTP
 		// status codes (400 = unsupported command / value out of range, 500 = busy), while the
@@ -253,6 +283,117 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 		}
 
 		this.parseData(body)
+	}
+
+	// The auth layer is written against a transport that raises a refused request as an error
+	// carrying the response (see requestWithAuth). fetch does neither — it hands a 401 back like any
+	// other answer and never repeats the request itself — so refusals are turned into errors of that
+	// shape here, and every other answer is passed through untouched for getAPI to read.
+	async getWithAuth(url, path, options) {
+		let spokenFor = false
+
+		const send = async (headers) => {
+			const response = await fetch(url, { ...options, headers })
+			if (response.status !== 401 && response.status !== 403) return response
+
+			// The body of a refusal is of no interest, and the connection is wanted back.
+			await response.body?.cancel().catch(() => {})
+
+			const error = new Error(`HTTP error: ${response.status} ${response.statusText}`)
+			error.httpStatus = response.status
+			error.response = { statusCode: response.status, headers: Object.fromEntries(response.headers) }
+			throw error
+		}
+
+		try {
+			return await requestWithAuth(send, {
+				session: this.auth,
+				uri: path,
+				report: (event) => {
+					spokenFor = this.reportAuthEvent(event) || spokenFor
+				},
+			})
+		} catch (error) {
+			// Mark a refusal that has already been named, so the poll loop leaves its message alone.
+			if (spokenFor) error.statusReported = true
+			throw error
+		}
+	}
+
+	// What the auth layer found, said once per connection. requestWithAuth reports through here on
+	// its way to handing a refusal back, so this is where one gets its status and its explanation.
+	// Returns whether it owns the connection status for that refusal.
+	reportAuthEvent({ type, scheme, realm, algorithm, offered }) {
+		const forRealm = realm ? ` (realm "${realm}")` : ''
+
+		// The poll loop meets the same refusal every few seconds; the status follows it, the
+		// explanation is written once.
+		const once = (level, message) => {
+			if (this.reportedAuth.has(type)) return
+			this.reportedAuth.add(type)
+			this.log(level, message)
+		}
+
+		switch (type) {
+			// The controller answered without ever asking for a login, and never will on this
+			// connection. Nothing is wrong; it is worth one line to separate "no login is needed
+			// here" from "nothing has been tried yet".
+			case 'none':
+				once('debug', 'Controller requires no authentication.')
+				return false
+
+			case 'authenticated':
+				once(
+					'debug',
+					`Authenticated with the controller${forRealm} using ${scheme}${algorithm ? ` (${algorithm})` : ''}.`,
+				)
+				return false
+
+			case 'stale':
+				this.log('debug', `Controller issued a fresh authentication nonce${forRealm}; re-authenticated.`)
+				return false
+
+			case 'credentialsRequired':
+				this.updateStatus(InstanceStatus.AuthenticationFailure, 'Login required')
+				once(
+					'error',
+					`The controller requires a login${forRealm} and this connection has none. Enter its username and ` +
+						"password in the connection's settings; the AW-RP200 asks for them on every request and cannot " +
+						'be set not to.',
+				)
+				return true
+
+			case 'rejected':
+				this.updateStatus(InstanceStatus.AuthenticationFailure, 'Login rejected')
+				once(
+					'error',
+					`The controller rejected the username and password${forRealm}. Check them against its web interface, ` +
+						"where the same pair logs in (factory default: admin / 12345), and correct them in the connection's " +
+						'settings.',
+				)
+				return true
+
+			case 'forbidden':
+				this.updateStatus(InstanceStatus.InsufficientPermissions, 'Insufficient permissions')
+				once(
+					'error',
+					`The controller took the login${forRealm} and refused the request anyway: the account does not have ` +
+						'the rights for it.',
+				)
+				return true
+
+			case 'unsupported':
+				this.updateStatus(InstanceStatus.AuthenticationFailure, 'Unsupported login method')
+				once(
+					'error',
+					`The controller asked for ${offered ?? 'a login method'}, which this module cannot answer. It speaks ` +
+						'Digest and Basic.',
+				)
+				return true
+
+			default:
+				return false
+		}
 	}
 
 	parseData(cmd) {

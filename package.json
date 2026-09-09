@@ -1,13 +1,15 @@
 {
 	"name": "panasonic-camera-controller",
-	"version": "2.2.0",
+	"version": "2.2.1",
 	"main": "src/index.js",
 	"type": "module",
 	"scripts": {
 		"format": "prettier -w .",
 		"package": "companion-module-build",
 		"lint:raw": "eslint",
-		"lint": "yarn lint:raw ."
+		"lint": "yarn lint:raw .",
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"repository": {
 		"type": "git",
@@ -24,7 +26,8 @@
 	"devDependencies": {
 		"@companion-module/tools": "^3.1.0",
 		"eslint": "^10.2.0",
-		"prettier": "^3.8.3"
+		"prettier": "^3.8.3",
+		"vitest": "^4.1.10"
 	},
 	"prettier": "@companion-module/tools/.prettierrc.json",
 	"packageManager": "yarn@4.17.0"

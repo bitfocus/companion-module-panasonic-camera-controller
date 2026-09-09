@@ -1,5 +1,7 @@
 import { MODELS } from './models.js'
 
+export const FACTORY_LOGIN = { username: 'admin', password: '12345' }
+
 export const ConfigFields = [
 	{
 		type: 'static-text',
@@ -39,6 +41,29 @@ export const ConfigFields = [
 		min: 1,
 		max: 65535,
 		asInteger: true,
+	},
+	{
+		type: 'static-text',
+		id: 'authInfo',
+		width: 12,
+		label: 'Authentication',
+		value: 'Some controllers (e.g. the AW-RP200) may require user authentication.',
+	},
+	{
+		type: 'textinput',
+		id: 'username',
+		label: 'Username',
+		description: 'The account this connection logs in with. Default: admin',
+		width: 6,
+		default: FACTORY_LOGIN.username,
+	},
+	{
+		type: 'secret-text',
+		id: 'password',
+		label: 'Password',
+		description: 'The password for that account. Default: 12345',
+		width: 6,
+		default: FACTORY_LOGIN.password,
 	},
 	{
 		type: 'static-text',
