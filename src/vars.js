@@ -5,6 +5,7 @@ export function setVariables() {
 		port: { name: 'Selected Port' },
 		pmem: { name: 'Last selected Preset Memory' },
 		tmem: { name: 'Last selected Tracing Memory' },
+		macro: { name: 'Playing Macro' },
 	}
 }
 export function checkVariables(self) {
@@ -14,5 +15,6 @@ export function checkVariables(self) {
 		port: self.data.port ?? undefined,
 		pmem: self.data.pmem ?? undefined,
 		tmem: self.data.tmem ?? undefined,
+		macro: self.data.macro ?? undefined,
 	})
 }

@@ -1,5 +1,5 @@
 import { combineRgb } from '@companion-module/base'
-import { CAMERA_LABEL, GROUP_LABEL, PORT_LABEL, PRESET_LABEL, TRACING_LABEL } from './common.js'
+import { CAMERA_LABEL, GROUP_LABEL, MACRO_LABEL, PORT_LABEL, PRESET_LABEL, TRACING_LABEL } from './common.js'
 
 const colorWhite = combineRgb(255, 255, 255)
 const colorRed = combineRgb(255, 0, 0)
@@ -212,6 +212,44 @@ export function setPresets(self) {
 			definitions: [
 				templateGroup('tmem_group', 'Standby', 'tracing_memory', 'tm', self.product.numberOfTracing, TRACING_LABEL),
 				{ id: 'tmem_controls', type: 'simple', name: 'Play / Stop', presets: ['tmem_play', 'tmem_stop'] },
+			],
+		})
+	}
+
+	if (self.product.macroMemory) {
+		addTemplatePreset(presets, 'macro_play', {
+			name: 'Play macro',
+			labelPrefix: MACRO_LABEL,
+			textPrefix: 'Play\\n',
+			bgcolor: colorBlack,
+			varName: 'mc',
+			actionId: 'macro',
+			actionOptions: (v) => ({ opt: '01', macro: v }),
+			feedbackId: 'macroSelected',
+			feedbackOptions: (v) => ({ macro: v }),
+			feedbackBg: colorGreen,
+		})
+
+		presets['macro_stop'] = {
+			type: 'simple',
+			name: 'MACRO Stop',
+			style: {
+				text: 'MACRO ⏹',
+				size: '18',
+				color: colorWhite,
+				bgcolor: colorRed,
+			},
+			// macro is irrelevant for Stop, but the hidden number field still requires a value.
+			steps: [{ down: [{ actionId: 'macro', options: { opt: '00', macro: 1 } }], up: [] }],
+			feedbacks: [],
+		}
+
+		structure.push({
+			id: 'macro',
+			name: 'Macro (MACRO)',
+			definitions: [
+				templateGroup('macro_group', 'Play', 'macro_play', 'mc', self.product.numberOfMacros, MACRO_LABEL),
+				{ id: 'macro_controls', type: 'simple', name: 'Stop', presets: ['macro_stop'] },
 			],
 		})
 	}

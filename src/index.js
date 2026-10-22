@@ -8,13 +8,6 @@ import { setVariables, checkVariables } from './vars.js'
 import { ConfigFields } from './config.js'
 import { createAuthSession, requestWithAuth } from './auth.js'
 
-// fetch (undici) reports every network-layer failure as `error.name === 'TypeError'`; only
-// error.cause reveals what happened. A working RP60/120/150 never returns a real HTTP response:
-// it accepts the TCP connection and closes it right after the status line, which surfaces as one
-// of these "connected, then closed" signatures. Everything else (connection refused, host down/
-// unreachable, no route, connect timeout, DNS failure — the exact code is platform-dependent)
-// means we never reached the controller, so we treat the reachable set as the allowlist and
-// default the rest to a connection failure.
 const REACHED_AFTER_CONNECT =
 	/UND_ERR_SOCKET|ECONNRESET|ECONNABORTED|EPIPE|other side closed|socket hang ?up|terminated/i
 
@@ -96,6 +89,7 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 			port: null,
 			pmem: null,
 			tmem: null,
+			macro: null,
 		}
 
 		this.config = config
@@ -447,6 +441,20 @@ class PanasonicCameraControllerInstance extends InstanceBase {
 						break
 					case '00':
 						// Stop
+						break
+				}
+				break
+			case 'XMC':
+				// Macro (AW-RP200 only). The controller echoes this back over serial only, so over
+				// IP the state comes from the action itself; handled here for consistency.
+				switch (response[1]) {
+					case '01':
+						// Play
+						this.data.macro = parseInt(response[2], 10)
+						break
+					case '00':
+						// Stop
+						this.data.macro = null
 						break
 				}
 				break

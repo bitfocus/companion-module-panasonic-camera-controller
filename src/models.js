@@ -15,6 +15,7 @@ export const PRODUCTS = {
 		numberOfPorts: 5,
 		presetMemory: false,
 		tracingMemory: false,
+		macroMemory: false,
 	},
 	'AW-RP60': {
 		numberOfCameras: 200,
@@ -23,6 +24,7 @@ export const PRODUCTS = {
 		numberOfPresets: 100,
 		presetMemory: true,
 		tracingMemory: false,
+		macroMemory: false,
 	},
 	'AW-RP120': {
 		numberOfCameras: 100,
@@ -32,6 +34,7 @@ export const PRODUCTS = {
 		numberOfTracing: 10,
 		presetMemory: true,
 		tracingMemory: true,
+		macroMemory: false,
 	},
 	'AW-RP150': {
 		numberOfCameras: 200,
@@ -41,6 +44,7 @@ export const PRODUCTS = {
 		numberOfTracing: 10,
 		presetMemory: true,
 		tracingMemory: true,
+		macroMemory: false,
 	},
 	'AW-RP200': {
 		numberOfCameras: 200,
@@ -48,8 +52,10 @@ export const PRODUCTS = {
 		numberOfPorts: 10,
 		numberOfPresets: 100,
 		numberOfTracing: 10,
+		numberOfMacros: 100,
 		presetMemory: true,
 		tracingMemory: true,
+		macroMemory: true,
 	},
 }
 

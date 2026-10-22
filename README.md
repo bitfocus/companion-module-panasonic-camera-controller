@@ -57,3 +57,4 @@ See HELP.md and LICENSE
 
 - Add support for controllers requiring user authentication (AW-RP200), Basic and Digest
 - More precise connection status messages for authentication problems
+- Add MACRO play/stop action, presets, variable and feedback (Supported by: AW-RP200)
